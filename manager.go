@@ -44,8 +44,8 @@ func (s *Manager) Start() {
 	go s.ReadMessage()
 
 	registerBidderMessage := &RegisterBidderMessage{
-		Bidder:    s.Bidder,
-		AuctionId: "https://youngmin.io_10",
+		Bidder:   s.Bidder,
+		RollupId: "rollup_1",
 	}
 	if err := s.Write(registerBidderMessage); err != nil {
 		log.Println("Write error:", err)
@@ -142,7 +142,7 @@ func MakeMessage(message any) ([]byte, error) {
 
 func (s *Manager) routeMessage(msg *Message) error {
 	switch msg.Type {
-	case "BidderRegistered":
+	case string(BidderRegistered):
 		message := new(BidderRegisteredMessage)
 		if err := UnMarshalFunc(msg.Payload, message); err != nil {
 			return err
@@ -150,15 +150,7 @@ func (s *Manager) routeMessage(msg *Message) error {
 		if err := s.handleBidderRegisteredMessage(message); err != nil {
 			return err
 		}
-	case "ActionCreated":
-		message := new(AuctionCreatedMessage)
-		if err := UnMarshalFunc(msg.Payload, message); err != nil {
-			return err
-		}
-		if err := s.handleAuctionCreatedMessage(message); err != nil {
-			return err
-		}
-	case "BidSubmitted":
+	case string(BidSubmitted):
 		message := new(BidSubmittedMessage)
 		if err := UnMarshalFunc(msg.Payload, message); err != nil {
 			return err
@@ -166,7 +158,7 @@ func (s *Manager) routeMessage(msg *Message) error {
 		if err := s.handleBidSubmittedMessage(message); err != nil {
 			return err
 		}
-	case "RoundStarted":
+	case string(RoundStarted):
 		message := new(RoundStartedMessage)
 		if err := UnMarshalFunc(msg.Payload, message); err != nil {
 			return err
@@ -174,7 +166,7 @@ func (s *Manager) routeMessage(msg *Message) error {
 		if err := s.handleRoundStartedMessage(message); err != nil {
 			return err
 		}
-	case "Tob":
+	case string(Tob):
 		message := new(TobMessage)
 		if err := UnMarshalFunc(msg.Payload, message); err != nil {
 			return err
@@ -210,7 +202,7 @@ func (s *Manager) handleRoundStartedMessage(message *RoundStartedMessage) error 
 	gasPrice := random.Intn(100)
 	submitBidMessage := &SubmitBidMessage{
 		Bidder:       s.Bidder,
-		AuctionID:    "https://youngmin.io_10",
+		AuctionID:    "rollup_1_100",
 		Round:        message.Round,
 		GasPrice:     gasPrice,
 		Transactions: s.getBundle(),

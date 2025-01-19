@@ -10,13 +10,12 @@ const (
 type MessageType string
 
 const (
-	RegisterSeller   MessageType = "RegisterSeller"
 	RegisterBidder   MessageType = "RegisterBidder"
-	SellerRegistered MessageType = "SellerRegistered"
-	CreateAuction    MessageType = "CreateAuction"
-	AuctionCreated   MessageType = "AuctionCreated"
+	BidderRegistered MessageType = "BidderRegistered"
 	SubmitBid        MessageType = "SubmitBid"
 	BidSubmitted     MessageType = "BidSubmitted"
+	RoundStarted     MessageType = "RoundStarted"
+	Tob              MessageType = "Tob"
 )
 
 type Message struct {
@@ -24,29 +23,13 @@ type Message struct {
 	Payload []byte `json:"payload"`
 }
 
-type RegisterSellerMessage struct {
-	Seller string `json:"seller"`
-}
-
-type SellerRegisteredMessage struct {
-	Status Status `json:"status"`
-}
-
 type RegisterBidderMessage struct {
-	Bidder    string `json:"seller"`
-	AuctionId string `json:"auctionId"`
+	Bidder   string `json:"seller"`
+	RollupId string `json:"rollupId"`
 }
 
 type BidderRegisteredMessage struct {
 	Status Status `json:"status"`
-}
-
-type CreateAuctionMessage struct {
-	Seller      string `json:"seller"`
-	RpcUrl      string `json:"rpc_url"`
-	ChainID     string `json:"chain_id"`
-	BlockNumber int64  `json:"block_number"`
-	BlockTime   int64  `json:"block_time"`
 }
 
 type AuctionCreatedMessage struct {
@@ -63,7 +46,7 @@ type SubmitBidMessage struct {
 	Bidder       string         `json:"bidder"`
 	AuctionID    string         `json:"auctionId"`
 	Round        int            `json:"round"`
-	GasPrice     int            `json:"gas_price"`
+	GasPrice     int            `json:"gasPrice"`
 	Transactions []*Transaction `json:"transactions"`
 }
 
