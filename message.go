@@ -38,8 +38,9 @@ type AuctionCreatedMessage struct {
 }
 
 type RoundStartedMessage struct {
-	AuctionId string `json:"auctionId"`
-	Round     int    `json:"round"`
+	AuctionId    string         `json:"auctionId"`
+	Round        int            `json:"round"`
+	Transactions []*Transaction `json:"transactions"`
 }
 
 type SubmitBidMessage struct {

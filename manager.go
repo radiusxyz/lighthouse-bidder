@@ -196,7 +196,7 @@ func (s *Manager) handleBidSubmittedMessage(message *BidSubmittedMessage) error 
 }
 
 func (s *Manager) handleRoundStartedMessage(message *RoundStartedMessage) error {
-	fmt.Println("다음 라운드가 시작되었습니다. auctionId:", message.AuctionId, " round: ", message.Round)
+	fmt.Println("다음 라운드가 시작되었습니다. auctionId:", message.AuctionId, " round: ", message.Round, " txs: ", message.Transactions)
 	source := rand.NewSource(time.Now().UnixNano())
 	random := rand.New(source)
 	gasPrice := random.Intn(100)
