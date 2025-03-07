@@ -1,4 +1,6 @@
-bidder:
-	go run .
+build:
+	go build -o ./bin/bidder
 
-.PHONY: bidder
+run: build
+	./bin/bidder -bidder.address=b_1
+.PHONY: run
