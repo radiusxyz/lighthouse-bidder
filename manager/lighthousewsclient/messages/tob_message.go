@@ -6,15 +6,8 @@ import (
 )
 
 type TobMessage struct {
-	AuctionId    string               `json:"auctionId"`
-	Transactions []*types.Transaction `json:"transactions"`
-}
-
-func NewTobMessage(auctionId string, transactions []*types.Transaction) *TobMessage {
-	return &TobMessage{
-		AuctionId:    auctionId,
-		Transactions: transactions,
-	}
+	AuctionId             string               `json:"auctionId"`
+	ConfirmedTransactions []*types.Transaction `json:"confirmedTransactions"`
 }
 
 func (m *TobMessage) MessageType() MessageType {
@@ -23,4 +16,11 @@ func (m *TobMessage) MessageType() MessageType {
 
 func (m *TobMessage) Marshal() ([]byte, error) {
 	return json.Marshal(m)
+}
+
+func (m *TobMessage) Validate() error {
+	return validateRequiredFields(map[string]any{
+		"auctionId":             m.AuctionId,
+		"confirmedTransactions": m.ConfirmedTransactions,
+	})
 }

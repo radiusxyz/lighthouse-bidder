@@ -13,3 +13,9 @@ func (m *BidderRegisteredMessage) MessageType() MessageType {
 func (m *BidderRegisteredMessage) Marshal() ([]byte, error) {
 	return json.Marshal(m)
 }
+
+func (m *BidderRegisteredMessage) Validate() error {
+	return validateRequiredFields(map[string]any{
+		"status": m.Status,
+	})
+}

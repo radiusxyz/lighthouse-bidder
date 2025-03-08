@@ -7,7 +7,7 @@ import (
 
 type SubmitBidMessage struct {
 	Bidder       string               `json:"bidder"`
-	AuctionID    string               `json:"auctionId"`
+	AuctionId    string               `json:"auctionId"`
 	Round        int                  `json:"round"`
 	GasPrice     int                  `json:"gasPrice"`
 	Transactions []*types.Transaction `json:"transactions"`

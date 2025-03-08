@@ -9,6 +9,7 @@ import (
 
 func ParseFlag() {
 	flag.String("bidder.address", "", "Bidder Address")
+	flag.String("rollup.id", "", "Rollup ID")
 	flag.Parse()
 }
 
@@ -18,10 +19,11 @@ func GetFlag(paramName string) string {
 
 func main() {
 	ParseFlag()
-	rollupId := GetFlag("bidder.address")
+	bidderAddress := GetFlag("bidder.address")
+	rollupId := GetFlag("rollup.id")
 
 	conf := config.New()
-	m, err := manager.New(conf, rollupId)
+	m, err := manager.New(conf, bidderAddress, rollupId)
 	if err != nil {
 		panic(err)
 	}

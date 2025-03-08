@@ -6,17 +6,9 @@ import (
 )
 
 type RoundStartedMessage struct {
-	AuctionId    string               `json:"auctionId"`
-	Round        int                  `json:"round"`
-	Transactions []*types.Transaction `json:"transactions"`
-}
-
-func NewRoundStartedMessage(auctionId string, round int, transactions []*types.Transaction) *RoundStartedMessage {
-	return &RoundStartedMessage{
-		AuctionId:    auctionId,
-		Round:        round,
-		Transactions: transactions,
-	}
+	AuctionId             *string              `json:"auctionId"`
+	Round                 *int                 `json:"round"`
+	ConfirmedTransactions []*types.Transaction `json:"confirmedTransactions"`
 }
 
 func (m *RoundStartedMessage) MessageType() MessageType {
@@ -25,4 +17,12 @@ func (m *RoundStartedMessage) MessageType() MessageType {
 
 func (m *RoundStartedMessage) Marshal() ([]byte, error) {
 	return json.Marshal(m)
+}
+
+func (m *RoundStartedMessage) Validate() error {
+	return validateRequiredFields(map[string]any{
+		"auctionId":             m.AuctionId,
+		"round":                 m.Round,
+		"confirmedTransactions": m.ConfirmedTransactions,
+	})
 }

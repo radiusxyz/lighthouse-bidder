@@ -22,7 +22,7 @@ type LighthouseWsClient struct {
 	handler        *LighthouseMessageHandler
 }
 
-func NewLighthouseWsClient(lighthouseUrl string, bidderAddress string) (*LighthouseWsClient, error) {
+func NewLighthouseWsClient(lighthouseUrl string, bidderAddress string, rollupId string) (*LighthouseWsClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(lighthouseUrl, nil)
 	if err != nil {
 		return nil, err
@@ -30,16 +30,21 @@ func NewLighthouseWsClient(lighthouseUrl string, bidderAddress string) (*Lightho
 
 	return &LighthouseWsClient{
 		conn:           conn,
+		rollupId:       rollupId,
 		bidderAddress:  bidderAddress,
 		lighthouseUrl:  lighthouseUrl,
 		leaveCh:        make(chan struct{}),
 		envelopeCh:     make(chan []byte),
 		messageDecoder: DecodeEnvelopeFunc,
-		handler:        NewLighthouseMessageHandler(),
+		handler:        NewLighthouseMessageHandler(conn, bidderAddress),
 	}, nil
 }
 
 func (l *LighthouseWsClient) Start(ctx context.Context) {
+	for i := 0; i < 1; i++ {
+		go l.ManageCh()
+	}
+
 	go l.ReadMessage()
 
 	registerBidderMessage := &messages.RegisterBidderMessage{
@@ -49,7 +54,6 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 	if err := l.SendMessage(registerBidderMessage); err != nil {
 		log.Println("Write error:", err)
 	}
-	fmt.Println("register rollup completed")
 }
 
 func (l *LighthouseWsClient) decoder(message []byte) (*messages.Message, error) {
@@ -92,6 +96,7 @@ func (l *LighthouseWsClient) ReadMessage() {
 			}
 			break
 		}
+		fmt.Println("read message:", string(message))
 		l.envelopeCh <- message
 	}
 }
@@ -107,7 +112,6 @@ func (l *LighthouseWsClient) ManageCh() {
 			if err != nil {
 				fmt.Println(err) //Todo
 			}
-
 			if err = l.handler.HandleMessage(decodedMessage); err != nil {
 				fmt.Println("exception filter: ", err.Error()) //Todo
 			}
@@ -133,24 +137,23 @@ func DecodeEnvelopeFunc(envelope []byte) (any, error) {
 
 	var data any
 	switch message.Type {
-	case string(messages.RegisterRollup):
-
-		data = new(messages.RegisterRollupMessage)
+	case string(messages.BidderRegistered):
+		data = new(messages.BidderRegisteredMessage)
 		if err := UnMarshalFunc(message.Payload, data); err != nil {
 			return nil, err
 		}
-	case string(messages.RegisterBidder):
-		data = new(messages.RegisterBidderMessage)
+	case string(messages.RoundStarted):
+		data = new(messages.RoundStartedMessage)
 		if err = UnMarshalFunc(message.Payload, data); err != nil {
 			return nil, err
 		}
-	case string(messages.CreateAuction):
-		data = new(messages.CreateAuctionMessage)
+	case string(messages.BidSubmitted):
+		data = new(messages.BidSubmittedMessage)
 		if err = UnMarshalFunc(message.Payload, data); err != nil {
 			return nil, err
 		}
-	case string(messages.SubmitBid):
-		data = new(messages.SubmitBidMessage)
+	case string(messages.Tob):
+		data = new(messages.TobMessage)
 		if err = UnMarshalFunc(message.Payload, data); err != nil {
 			return nil, err
 		}
