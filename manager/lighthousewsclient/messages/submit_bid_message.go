@@ -2,15 +2,14 @@ package messages
 
 import (
 	"encoding/json"
-	"github.com/radiusxyz/lighthouse-bidder/types"
 )
 
 type SubmitBidMessage struct {
-	Bidder       string               `json:"bidder"`
-	AuctionId    string               `json:"auctionId"`
-	Round        int                  `json:"round"`
-	GasPrice     int                  `json:"gasPrice"`
-	Transactions []*types.Transaction `json:"transactions"`
+	Bidder       string   `json:"bidder"`
+	AuctionId    string   `json:"auctionId"`
+	Round        int      `json:"round"`
+	GasPrice     int      `json:"gasPrice"`
+	Transactions []string `json:"transactions"`
 }
 
 func (m *SubmitBidMessage) MessageType() MessageType {

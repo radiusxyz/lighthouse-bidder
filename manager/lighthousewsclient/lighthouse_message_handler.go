@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/radiusxyz/lighthouse-bidder/logger"
 	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/messages"
-	"github.com/radiusxyz/lighthouse-bidder/types"
 	"log"
+	"strconv"
 )
 
 type LighthouseMessageHandler struct {
@@ -26,7 +27,8 @@ func (l *LighthouseMessageHandler) handleBidderRegisteredMessage(message *messag
 		log.Println("Validation failed:", err)
 	}
 
-	fmt.Println("입찰자로 정상 등록되었습니다:", message)
+	logger.ColorLog(logger.BgGreen, "Successfully registered")
+
 	return nil
 }
 
@@ -35,7 +37,7 @@ func (l *LighthouseMessageHandler) handleAuctionCreatedMessage(message *messages
 		log.Println("Validation failed:", err)
 	}
 
-	fmt.Println("auction이 성공적으로 생성되었습니다. auctionId: ", message.AuctionId)
+	fmt.Println("Auction created. auctionId: ", message.AuctionId)
 	return nil
 }
 
@@ -44,28 +46,33 @@ func (l *LighthouseMessageHandler) handleBidSubmittedMessage(message *messages.B
 		log.Println("Validation failed:", err)
 	}
 
-	fmt.Println("handleBidSubmittedMessage:", message)
+	//fmt.Println("handleBidSubmittedMessage:", message)
 	return nil
 }
 
 func (l *LighthouseMessageHandler) handleRoundStartedMessage(message *messages.RoundStartedMessage) error {
-	fmt.Println("handleRoundStartedMessage:", message)
+	logger.ColorLog(logger.Blue, "Round "+strconv.Itoa(*message.Round)+"started")
 
 	if err := messages.ValidateMessage(message); err != nil {
 		log.Println("Validation failed:", err)
 	}
 
-	transaction := &types.Transaction{
-		Hash: "0xhash",
-	}
-	res := &messages.SubmitBidMessage{
+	transaction := "0xTOB" + *message.AuctionId + strconv.Itoa(*message.Round) + l.bidderAddress
+
+	msg := &messages.SubmitBidMessage{
 		Bidder:       l.bidderAddress,
 		AuctionId:    *message.AuctionId,
 		Round:        *message.Round,
 		GasPrice:     10,
-		Transactions: []*types.Transaction{transaction},
+		Transactions: []string{transaction},
 	}
-	return l.sendMessage(res)
+
+	if err := l.sendMessage(msg); err != nil {
+		return err
+	}
+
+	logger.ColorLog(logger.Green, "Bid sent. AuctionId: "+msg.AuctionId+" Round: "+strconv.Itoa(*message.Round))
+	return nil
 }
 
 func (l *LighthouseMessageHandler) handleTobMessage(message *messages.TobMessage) error {
@@ -73,7 +80,8 @@ func (l *LighthouseMessageHandler) handleTobMessage(message *messages.TobMessage
 		log.Println("Validation failed:", err)
 	}
 
-	fmt.Println("handleTobMessage:", message)
+	logger.ColorLog(logger.Blue, "Received tob. auctionId "+*message.AuctionId)
+
 	return nil
 }
 

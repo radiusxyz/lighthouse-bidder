@@ -56,15 +56,6 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 	}
 }
 
-func (l *LighthouseWsClient) decoder(message []byte) (*messages.Message, error) {
-	var msg = &messages.Message{}
-	if err := json.Unmarshal(message, msg); err != nil {
-		log.Println("Invalid message format:", err)
-		return nil, err
-	}
-	return msg, nil
-}
-
 func (l *LighthouseWsClient) SendMessage(message messages.SendableMessage) error {
 	payload, err := message.Marshal()
 	if err != nil {
@@ -96,7 +87,6 @@ func (l *LighthouseWsClient) ReadMessage() {
 			}
 			break
 		}
-		fmt.Println("read message:", string(message))
 		l.envelopeCh <- message
 	}
 }

@@ -39,7 +39,7 @@ type ValidatableMessage interface {
 }
 
 func validateRequiredFields(fields map[string]any) error {
-	missingFields := []string{}
+	var missingFields []string
 	for key, value := range fields {
 		if value == nil {
 			missingFields = append(missingFields, key)

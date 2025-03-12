@@ -2,13 +2,12 @@ package messages
 
 import (
 	"encoding/json"
-	"github.com/radiusxyz/lighthouse-bidder/types"
 )
 
 type RoundStartedMessage struct {
-	AuctionId             *string              `json:"auctionId"`
-	Round                 *int                 `json:"round"`
-	ConfirmedTransactions []*types.Transaction `json:"confirmedTransactions"`
+	AuctionId             *string  `json:"auctionId"`
+	Round                 *int     `json:"round"`
+	ConfirmedTransactions []string `json:"confirmedTransactions"`
 }
 
 func (m *RoundStartedMessage) MessageType() MessageType {

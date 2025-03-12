@@ -2,12 +2,11 @@ package messages
 
 import (
 	"encoding/json"
-	"github.com/radiusxyz/lighthouse-bidder/types"
 )
 
 type TobMessage struct {
-	AuctionId             string               `json:"auctionId"`
-	ConfirmedTransactions []*types.Transaction `json:"confirmedTransactions"`
+	AuctionId             *string  `json:"auctionId"`
+	ConfirmedTransactions []string `json:"confirmedTransactions"`
 }
 
 func (m *TobMessage) MessageType() MessageType {
