@@ -3,8 +3,8 @@ package messages
 import "encoding/json"
 
 type RegisterBidderMessage struct {
-	Bidder   string `json:"bidder"`
-	RollupId string `json:"rollupId"`
+	BidderAddress string `json:"bidderAddress"`
+	RollupId      string `json:"rollupId"`
 }
 
 func (m *RegisterBidderMessage) MessageType() MessageType {

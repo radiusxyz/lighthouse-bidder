@@ -5,11 +5,11 @@ import (
 )
 
 type SubmitBidMessage struct {
-	Bidder       string   `json:"bidder"`
-	AuctionId    string   `json:"auctionId"`
-	Round        int      `json:"round"`
-	GasPrice     int      `json:"gasPrice"`
-	Transactions []string `json:"transactions"`
+	BidderAddress string   `json:"bidderAddress"`
+	AuctionId     string   `json:"auctionId"`
+	Round         int      `json:"round"`
+	BidPrice      int      `json:"bidPrice"`
+	Transactions  []string `json:"transactions"`
 }
 
 func (m *SubmitBidMessage) MessageType() MessageType {

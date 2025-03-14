@@ -48,8 +48,8 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 	go l.ReadMessage()
 
 	registerBidderMessage := &messages.RegisterBidderMessage{
-		Bidder:   l.bidderAddress,
-		RollupId: l.rollupId,
+		BidderAddress: l.bidderAddress,
+		RollupId:      l.rollupId,
 	}
 	if err := l.SendMessage(registerBidderMessage); err != nil {
 		log.Println("Write error:", err)

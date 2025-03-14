@@ -51,7 +51,7 @@ func (l *LighthouseMessageHandler) handleBidSubmittedMessage(message *messages.B
 }
 
 func (l *LighthouseMessageHandler) handleRoundStartedMessage(message *messages.RoundStartedMessage) error {
-	logger.ColorLog(logger.Blue, "Round "+strconv.Itoa(*message.Round)+"started")
+	logger.ColorLog(logger.Blue, "Round "+strconv.Itoa(*message.Round)+" started")
 
 	if err := messages.ValidateMessage(message); err != nil {
 		log.Println("Validation failed:", err)
@@ -60,11 +60,11 @@ func (l *LighthouseMessageHandler) handleRoundStartedMessage(message *messages.R
 	transaction := "0xTOB" + *message.AuctionId + strconv.Itoa(*message.Round) + l.bidderAddress
 
 	msg := &messages.SubmitBidMessage{
-		Bidder:       l.bidderAddress,
-		AuctionId:    *message.AuctionId,
-		Round:        *message.Round,
-		GasPrice:     10,
-		Transactions: []string{transaction},
+		BidderAddress: l.bidderAddress,
+		AuctionId:     *message.AuctionId,
+		Round:         *message.Round,
+		BidPrice:      10,
+		Transactions:  []string{transaction},
 	}
 
 	if err := l.sendMessage(msg); err != nil {
