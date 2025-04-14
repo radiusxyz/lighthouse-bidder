@@ -16,9 +16,9 @@ type RequestParams interface {
 }
 
 type RequestMessage struct {
-	Id     string          `json:"id"`
-	Method RequestType     `json:"method"`
-	Params json.RawMessage `json:"params"`
+	Id          string          `json:"id"`
+	RequestType RequestType     `json:"requestType"`
+	Payload     json.RawMessage `json:"payload"`
 }
 
 func (r *RequestMessage) Marshal() ([]byte, error) {

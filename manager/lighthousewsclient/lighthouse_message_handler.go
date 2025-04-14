@@ -3,6 +3,7 @@ package lighthousewsclient
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
 	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/events"
@@ -43,14 +44,14 @@ func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundSt
 
 	transaction := "0xTOB" + *event.AuctionId + strconv.Itoa(*event.Round) + l.bidderAddress
 
-	msg := &requests.SubmitBidRequest{
+	req := &requests.SubmitBidRequest{
 		BidderAddress: l.bidderAddress,
 		AuctionId:     *event.AuctionId,
 		Round:         *event.Round,
 		BidPrice:      10,
 		Transactions:  []string{transaction},
 	}
-	if err := l.SendMessage(requests.SubmitBid, msg); err != nil {
+	if err := l.SendMessage(requests.SubmitBid, req); err != nil {
 		return err
 	}
 	return nil
@@ -93,19 +94,19 @@ func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
 func (l *LighthouseMessageHandler) handleResponse(res *responses.ResponseMessage) error {
 	switch res.ResponseType {
 	case responses.BidderRegistered:
-		result := new(responses.BidderRegisteredResponse)
-		if err := json.Unmarshal(res.Result, result); err != nil {
+		payload := new(responses.BidderRegisteredResponse)
+		if err := json.Unmarshal(res.Payload, payload); err != nil {
 			return fmt.Errorf("failed to decode BidderRegisteredMessage: %w", err)
 		}
-		return l.handleBidderRegisteredResponse(result)
+		return l.handleBidderRegisteredResponse(payload)
 	case responses.BidSubmitted:
-		result := new(responses.BidSubmittedResponse)
-		if err := json.Unmarshal(res.Result, result); err != nil {
+		payload := new(responses.BidSubmittedResponse)
+		if err := json.Unmarshal(res.Payload, payload); err != nil {
 			return fmt.Errorf("failed to decode BidSubmittedMessage: %w", err)
 		}
-		return l.handleBidSubmittedResponse(result)
+		return l.handleBidSubmittedResponse(payload)
 	default:
-		return fmt.Errorf("unknown response message type")
+		return fmt.Errorf("unknown response type")
 	}
 }
 
@@ -128,16 +129,16 @@ func (l *LighthouseMessageHandler) handleEvent(event *events.EventMessage) error
 	}
 }
 
-func (l *LighthouseMessageHandler) SendMessage(method requests.RequestType, message requests.RequestParams) error {
+func (l *LighthouseMessageHandler) SendMessage(requestType requests.RequestType, message requests.RequestParams) error {
 	payload, err := message.Marshal()
 	if err != nil {
 		return fmt.Errorf("failed to serialize message: %w", err)
 	}
 
 	requestMessage := &requests.RequestMessage{
-		Id:     "",
-		Method: method,
-		Params: payload,
+		Id:          uuid.New().String(),
+		RequestType: requestType,
+		Payload:     payload,
 	}
 	data, err := json.Marshal(requestMessage)
 	if err != nil {
