@@ -5,10 +5,16 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/messages"
-	"log"
+	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/events"
+	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/requests"
+	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/responses"
 	"strconv"
 )
+
+type BaseMessage struct {
+	Id        *string           `json:"id"`
+	EventType *events.EventType `json:"eventType"`
+}
 
 type LighthouseMessageHandler struct {
 	serverConn    *websocket.Conn
@@ -22,96 +28,118 @@ func NewLighthouseMessageHandler(serverConn *websocket.Conn, bidderAddress strin
 	}
 }
 
-func (l *LighthouseMessageHandler) handleBidderRegisteredMessage(message *messages.BidderRegisteredMessage) error {
-	if err := messages.ValidateMessage(message); err != nil {
-		log.Println("Validation failed:", err)
-	}
-
+func (l *LighthouseMessageHandler) handleBidderRegisteredResponse(res *responses.BidderRegisteredResponse) error {
 	logger.ColorLog(logger.BgGreen, "Successfully registered")
-
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleAuctionCreatedMessage(message *messages.AuctionCreatedMessage) error {
-	if err := messages.ValidateMessage(message); err != nil {
-		log.Println("Validation failed:", err)
-	}
-
-	fmt.Println("Auction created. auctionId: ", message.AuctionId)
+func (l *LighthouseMessageHandler) handleBidSubmittedResponse(res *responses.BidSubmittedResponse) error {
+	logger.ColorLog(logger.Green, "Successfully bid sent")
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleBidSubmittedMessage(message *messages.BidSubmittedMessage) error {
-	if err := messages.ValidateMessage(message); err != nil {
-		log.Println("Validation failed:", err)
-	}
+func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundStartedEvent) error {
+	logger.ColorLog(logger.Blue, "Round "+strconv.Itoa(*event.Round)+" started")
 
-	//fmt.Println("handleBidSubmittedMessage:", message)
-	return nil
-}
+	transaction := "0xTOB" + *event.AuctionId + strconv.Itoa(*event.Round) + l.bidderAddress
 
-func (l *LighthouseMessageHandler) handleRoundStartedMessage(message *messages.RoundStartedMessage) error {
-	logger.ColorLog(logger.Blue, "Round "+strconv.Itoa(*message.Round)+" started")
-
-	if err := messages.ValidateMessage(message); err != nil {
-		log.Println("Validation failed:", err)
-	}
-
-	transaction := "0xTOB" + *message.AuctionId + strconv.Itoa(*message.Round) + l.bidderAddress
-
-	msg := &messages.SubmitBidMessage{
+	msg := &requests.SubmitBidRequest{
 		BidderAddress: l.bidderAddress,
-		AuctionId:     *message.AuctionId,
-		Round:         *message.Round,
+		AuctionId:     *event.AuctionId,
+		Round:         *event.Round,
 		BidPrice:      10,
 		Transactions:  []string{transaction},
 	}
+	if err := l.SendMessage(requests.SubmitBid, msg); err != nil {
+		return err
+	}
+	return nil
+}
 
-	if err := l.sendMessage(msg); err != nil {
+func (l *LighthouseMessageHandler) handleTobEvent(event *events.TobEvent) error {
+	logger.ColorLog(logger.BgGreen, "Received tob. auctionId "+*event.AuctionId)
+	return nil
+}
+
+func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
+	base := new(BaseMessage)
+	if err := json.Unmarshal(envelope, base); err != nil {
 		return err
 	}
 
-	logger.ColorLog(logger.Green, "Bid sent. AuctionId: "+msg.AuctionId+" Round: "+strconv.Itoa(*message.Round))
-	return nil
-}
-
-func (l *LighthouseMessageHandler) handleTobMessage(message *messages.TobMessage) error {
-	if err := messages.ValidateMessage(message); err != nil {
-		log.Println("Validation failed:", err)
-	}
-
-	logger.ColorLog(logger.Blue, "Received tob. auctionId "+*message.AuctionId)
-
-	return nil
-}
-
-func (l *LighthouseMessageHandler) HandleMessage(message any) error {
-	switch t := message.(type) {
-	case *messages.BidderRegisteredMessage:
-		return l.handleBidderRegisteredMessage(t)
-	case *messages.RoundStartedMessage:
-		return l.handleRoundStartedMessage(t)
-	case *messages.BidSubmittedMessage:
-		return l.handleBidSubmittedMessage(t)
-	case *messages.TobMessage:
-		return l.handleTobMessage(t)
+	switch {
+	case base.Id != nil:
+		res := new(responses.ResponseMessage)
+		if err := json.Unmarshal(envelope, &res); err != nil {
+			return fmt.Errorf("failed to parse response: %w", err)
+		}
+		if err := l.handleResponse(res); err != nil {
+			return err
+		}
+	case base.EventType != nil:
+		event := new(events.EventMessage)
+		if err := json.Unmarshal(envelope, &event); err != nil {
+			return fmt.Errorf("failed to parse event: %w", err)
+		}
+		if err := l.handleEvent(event); err != nil {
+			return err
+		}
 	default:
-		log.Println("Unknown message type:", t)
+		return fmt.Errorf("unknown message format")
 	}
 	return nil
 }
 
-func (l *LighthouseMessageHandler) sendMessage(message messages.SendableMessage) error {
+func (l *LighthouseMessageHandler) handleResponse(res *responses.ResponseMessage) error {
+	switch res.ResponseType {
+	case responses.BidderRegistered:
+		result := new(responses.BidderRegisteredResponse)
+		if err := json.Unmarshal(res.Result, result); err != nil {
+			return fmt.Errorf("failed to decode BidderRegisteredMessage: %w", err)
+		}
+		return l.handleBidderRegisteredResponse(result)
+	case responses.BidSubmitted:
+		result := new(responses.BidSubmittedResponse)
+		if err := json.Unmarshal(res.Result, result); err != nil {
+			return fmt.Errorf("failed to decode BidSubmittedMessage: %w", err)
+		}
+		return l.handleBidSubmittedResponse(result)
+	default:
+		return fmt.Errorf("unknown response message type")
+	}
+}
+
+func (l *LighthouseMessageHandler) handleEvent(event *events.EventMessage) error {
+	switch event.EventType {
+	case events.RoundStarted:
+		payload := new(events.RoundStartedEvent)
+		if err := json.Unmarshal(event.Payload, payload); err != nil {
+			return fmt.Errorf("failed to decode RoundStartedMessage: %w", err)
+		}
+		return l.handleRoundStartedEvent(payload)
+	case events.Tob:
+		payload := new(events.TobEvent)
+		if err := json.Unmarshal(event.Payload, payload); err != nil {
+			return fmt.Errorf("failed to decode BidSubmittedMessage: %w", err)
+		}
+		return l.handleTobEvent(payload)
+	default:
+		return fmt.Errorf("unknown event type")
+	}
+}
+
+func (l *LighthouseMessageHandler) SendMessage(method requests.RequestType, message requests.RequestParams) error {
 	payload, err := message.Marshal()
 	if err != nil {
 		return fmt.Errorf("failed to serialize message: %w", err)
 	}
 
-	wrapper := &messages.Message{
-		Type:    string(message.MessageType()),
-		Payload: payload,
+	requestMessage := &requests.RequestMessage{
+		Id:     "",
+		Method: method,
+		Params: payload,
 	}
-	data, err := json.Marshal(wrapper)
+	data, err := json.Marshal(requestMessage)
 	if err != nil {
 		return fmt.Errorf("failed to wrap message: %w", err)
 	}

@@ -1,10 +1,10 @@
-package messages
+package requests
 
 import (
 	"encoding/json"
 )
 
-type SubmitBidMessage struct {
+type SubmitBidRequest struct {
 	BidderAddress string   `json:"bidderAddress"`
 	AuctionId     string   `json:"auctionId"`
 	Round         int      `json:"round"`
@@ -12,10 +12,6 @@ type SubmitBidMessage struct {
 	Transactions  []string `json:"transactions"`
 }
 
-func (m *SubmitBidMessage) MessageType() MessageType {
-	return SubmitBid
-}
-
-func (m *SubmitBidMessage) Marshal() ([]byte, error) {
-	return json.Marshal(m)
+func (r *SubmitBidRequest) Marshal() ([]byte, error) {
+	return json.Marshal(r)
 }
