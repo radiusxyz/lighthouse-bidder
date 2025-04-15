@@ -3,7 +3,8 @@ package responses
 import "encoding/json"
 
 type BidderRegisteredResponse struct {
-	Status Status `json:"status"`
+	BidderAddress *string `json:"bidderAddress"`
+	RollupId      *string `json:"rollupId"`
 }
 
 func (r *BidderRegisteredResponse) Unmarshal(data []byte) error {
