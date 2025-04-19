@@ -2,12 +2,11 @@ package responses
 
 import "encoding/json"
 
-type BidderRegisteredResponse struct {
+type BidderVerifiedResponse struct {
 	BidderAddress *string `json:"bidderAddress"`
-	RollupId      *string `json:"rollupId"`
 }
 
-func (r *BidderRegisteredResponse) Unmarshal(data []byte) error {
+func (r *BidderVerifiedResponse) Unmarshal(data []byte) error {
 	if err := json.Unmarshal(data, r); err != nil {
 		return err
 	}

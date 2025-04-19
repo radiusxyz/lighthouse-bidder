@@ -29,7 +29,7 @@ func NewLighthouseMessageHandler(serverConn *websocket.Conn, bidderAddress strin
 	}
 }
 
-func (l *LighthouseMessageHandler) handleBidderRegisteredResponse(res *responses.BidderRegisteredResponse) error {
+func (l *LighthouseMessageHandler) handleBidderVerifiedResponse(res *responses.BidderVerifiedResponse) error {
 	logger.ColorLog(logger.BgGreen, "Successfully registered")
 	return nil
 }
@@ -94,11 +94,11 @@ func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
 func (l *LighthouseMessageHandler) handleResponse(res *responses.ResponseMessage) error {
 	switch res.ResponseType {
 	case responses.BidderRegistered:
-		payload := new(responses.BidderRegisteredResponse)
+		payload := new(responses.BidderVerifiedResponse)
 		if err := json.Unmarshal(res.Payload, payload); err != nil {
 			return fmt.Errorf("failed to decode BidderRegisteredMessage: %w", err)
 		}
-		return l.handleBidderRegisteredResponse(payload)
+		return l.handleBidderVerifiedResponse(payload)
 	case responses.BidSubmitted:
 		payload := new(responses.BidSubmittedResponse)
 		if err := json.Unmarshal(res.Payload, payload); err != nil {

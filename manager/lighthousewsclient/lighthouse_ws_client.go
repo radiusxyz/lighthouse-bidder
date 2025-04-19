@@ -44,11 +44,10 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 
 	go l.ReadMessage()
 
-	registerBidderMessage := &requests.RegisterBidderRequest{
+	verifyBidderMessage := &requests.VerifyBidderRequest{
 		BidderAddress: l.bidderAddress,
-		RollupId:      l.rollupId,
 	}
-	if err := l.handler.SendMessage(requests.RegisterBidder, registerBidderMessage); err != nil {
+	if err := l.handler.SendMessage(requests.VerifyBidder, verifyBidderMessage); err != nil {
 		log.Println("Write error:", err)
 	}
 }

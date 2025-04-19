@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 )
 
-type Status int
-
 type ResponseType string
 
 const (
-	BidderRegistered ResponseType = "BidderRegistered"
-	BidSubmitted     ResponseType = "BidSubmitted"
+	BidderRegistered       ResponseType = "BidderRegistered"
+	BidSubmitted           ResponseType = "BidSubmitted"
+	RollupsSubscribed      ResponseType = "RollupsSubscribed"
+	RollupsUnsubscribed    ResponseType = "RollupsUnsubscribed"
+	AllRollupsUnsubscribed ResponseType = "AllRollupsUnsubscribed"
 )
 
 type ResponsePayload interface {
