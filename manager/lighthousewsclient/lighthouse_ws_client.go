@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/radiusxyz/lighthouse-bidder/logger"
 	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/requests"
 	"io"
-	"log"
 )
 
 type LighthouseWsClient struct {
 	conn          *websocket.Conn
-	rollupId      string
+	rollupIds     []string
 	lighthouseUrl string
 	bidderAddress string
 	leaveCh       chan struct{}
@@ -20,7 +20,7 @@ type LighthouseWsClient struct {
 	handler       *LighthouseMessageHandler
 }
 
-func NewLighthouseWsClient(lighthouseUrl string, bidderAddress string, rollupId string) (*LighthouseWsClient, error) {
+func NewLighthouseWsClient(lighthouseUrl string, bidderAddress string, rollupId []string) (*LighthouseWsClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(lighthouseUrl, nil)
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func NewLighthouseWsClient(lighthouseUrl string, bidderAddress string, rollupId 
 
 	return &LighthouseWsClient{
 		conn:          conn,
-		rollupId:      rollupId,
+		rollupIds:     rollupId,
 		bidderAddress: bidderAddress,
 		lighthouseUrl: lighthouseUrl,
 		leaveCh:       make(chan struct{}),
@@ -44,11 +44,19 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 
 	go l.ReadMessage()
 
-	verifyBidderMessage := &requests.VerifyBidderRequest{
+	verifyBidderRequest := &requests.VerifyBidderRequest{
 		BidderAddress: l.bidderAddress,
 	}
-	if err := l.handler.SendMessage(requests.VerifyBidder, verifyBidderMessage); err != nil {
-		log.Println("Write error:", err)
+	if err := l.handler.SendMessage(requests.VerifyBidder, verifyBidderRequest); err != nil {
+		logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
+	}
+
+	subscribeRollupsRequest := &requests.SubscribeRollupsRequest{
+		BidderAddress: l.bidderAddress,
+		RollupIds:     l.rollupIds,
+	}
+	if err := l.handler.SendMessage(requests.SubscribeRollups, subscribeRollupsRequest); err != nil {
+		logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
 	}
 }
 
@@ -60,7 +68,7 @@ func (l *LighthouseWsClient) ReadMessage() {
 	for {
 		_, envelope, err := l.conn.ReadMessage()
 		if err != nil {
-			log.Println("Read error:", err)
+			logger.Println("Read error:", err)
 			if errors.Is(err, io.EOF) {
 				fmt.Println("youngmin - eof")
 				l.leaveCh <- struct{}{}
@@ -76,10 +84,10 @@ func (l *LighthouseWsClient) ManageCh() {
 		select {
 		case <-l.leaveCh:
 			_ = l.conn.Close()
-			log.Println("connection to the server has been lost")
+			logger.Println("connection to the server has been lost")
 		case envelope := <-l.envelopeCh:
 			if err := l.handler.HandleEnvelope(envelope); err != nil {
-				fmt.Println("exception filter: ", err.Error()) //Todo
+				logger.ColorPrintf(logger.Red, "Exception filter: %s\n", err.Error())
 			}
 		}
 	}

@@ -3,7 +3,7 @@ package requests
 import "encoding/json"
 
 type SubscribeRollupsRequest struct {
-	BidderAddress *string  `json:"bidderAddress"`
+	BidderAddress string   `json:"bidderAddress"`
 	RollupIds     []string `json:"rollupIds"`
 }
 

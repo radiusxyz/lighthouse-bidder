@@ -7,7 +7,7 @@ import (
 type ResponseType string
 
 const (
-	BidderRegistered       ResponseType = "BidderRegistered"
+	BidderVerified         ResponseType = "BidderVerified"
 	BidSubmitted           ResponseType = "BidSubmitted"
 	RollupsSubscribed      ResponseType = "RollupsSubscribed"
 	RollupsUnsubscribed    ResponseType = "RollupsUnsubscribed"

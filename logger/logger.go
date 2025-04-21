@@ -1,13 +1,14 @@
 package logger
 
-import "log"
+import (
+	"log"
+)
 
 const (
 	Reset     = "\033[0m"
 	Bold      = "\033[1m"
 	Underline = "\033[4m"
 
-	// 기본 색상
 	Black   = "\033[30m"
 	Red     = "\033[31m"
 	Green   = "\033[32m"
@@ -17,7 +18,6 @@ const (
 	Cyan    = "\033[36m"
 	White   = "\033[37m"
 
-	// 밝은 색상
 	BrightBlack   = "\033[90m"
 	BrightRed     = "\033[91m"
 	BrightGreen   = "\033[92m"
@@ -27,7 +27,6 @@ const (
 	BrightCyan    = "\033[96m"
 	BrightWhite   = "\033[97m"
 
-	// 배경 색상
 	BgRed     = "\033[41m"
 	BgGreen   = "\033[42m"
 	BgYellow  = "\033[43m"
@@ -37,6 +36,18 @@ const (
 	BgWhite   = "\033[47m"
 )
 
-func ColorLog(color, message string) {
+func ColorPrintln(color, message string) {
 	log.Println(color + message + Reset)
+}
+
+func ColorPrintf(color, message string, a ...any) {
+	log.Printf(color+message+Reset, a...)
+}
+
+func Println(a ...any) {
+	log.Println(a...)
+}
+
+func Printf(format string, a ...any) {
+	log.Printf(format, a...)
 }

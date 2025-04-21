@@ -1,8 +1,18 @@
+ROLLUP_IDS ?= "r_1 r_2"
+BIDDER_ADDRESS ?= 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
+
 build:
 	go build -o ./bin/bidder
 
+#run: build
+#	@for id in $(ROLLUP_IDS); do \
+#		echo "Running for rollup.ids=$$id"; \
+#		./bin/bidder -bidder.address=$(BIDDER_ADDRESS) -rollup.ids=$$id; \
+#	done
+#.PHONY: run
+
 run: build
-	./bin/bidder -bidder.address=b_1 -rollup.id=r_1
+	./bin/bidder -bidder.address=$(BIDDER_ADDRESS) -rollup.ids=$(ROLLUP_IDS)
 .PHONY: run
 
 cluster1-1-1: build

@@ -30,17 +30,32 @@ func NewLighthouseMessageHandler(serverConn *websocket.Conn, bidderAddress strin
 }
 
 func (l *LighthouseMessageHandler) handleBidderVerifiedResponse(res *responses.BidderVerifiedResponse) error {
-	logger.ColorLog(logger.BgGreen, "Successfully registered")
+	logger.ColorPrintln(logger.BgGreen, "Successfully verified")
+	return nil
+}
+
+func (l *LighthouseMessageHandler) handleRollupsSubscribedResponse(res *responses.RollupsSubscribedResponse) error {
+	logger.ColorPrintln(logger.BgGreen, "Successfully subscribed")
+	return nil
+}
+
+func (l *LighthouseMessageHandler) handleRollupsUnsubscribedResponse(res *responses.RollupsUnsubscribedResponse) error {
+	logger.ColorPrintln(logger.BgGreen, "Successfully unsubscribed")
+	return nil
+}
+
+func (l *LighthouseMessageHandler) handleAllRollupsUnsubscribedResponse(res *responses.AllRollupsUnsubscribedResponse) error {
+	logger.ColorPrintln(logger.BgGreen, "Successfully all unsubscribed")
 	return nil
 }
 
 func (l *LighthouseMessageHandler) handleBidSubmittedResponse(res *responses.BidSubmittedResponse) error {
-	logger.ColorLog(logger.Green, "Successfully bid sent")
+	logger.ColorPrintln(logger.BgGreen, "Successfully bid sent")
 	return nil
 }
 
 func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundStartedEvent) error {
-	logger.ColorLog(logger.Blue, "Round "+strconv.Itoa(*event.Round)+" started")
+	logger.ColorPrintln(logger.BgGreen, "Round "+strconv.Itoa(*event.Round)+" started")
 
 	transaction := "0xTOB" + *event.AuctionId + strconv.Itoa(*event.Round) + l.bidderAddress
 
@@ -54,11 +69,14 @@ func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundSt
 	if err := l.SendMessage(requests.SubmitBid, req); err != nil {
 		return err
 	}
+
+	logger.Println("Bid submitted")
+
 	return nil
 }
 
 func (l *LighthouseMessageHandler) handleTobEvent(event *events.TobEvent) error {
-	logger.ColorLog(logger.BgGreen, "Received tob. auctionId "+*event.AuctionId)
+	logger.ColorPrintln(logger.BgGreen, "Received tob. auctionId "+*event.AuctionId)
 	return nil
 }
 
@@ -92,17 +110,39 @@ func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
 }
 
 func (l *LighthouseMessageHandler) handleResponse(res *responses.ResponseMessage) error {
+	if res.Error != nil {
+		return fmt.Errorf("[ErrorResponse] id=%s type=%s msg=%s", res.Id, res.ResponseType, res.Error.Message)
+	}
+
 	switch res.ResponseType {
-	case responses.BidderRegistered:
+	case responses.BidderVerified:
 		payload := new(responses.BidderVerifiedResponse)
 		if err := json.Unmarshal(res.Payload, payload); err != nil {
-			return fmt.Errorf("failed to decode BidderRegisteredMessage: %w", err)
+			return fmt.Errorf("failed to decode BidderRegisteredResponse: %w", err)
 		}
 		return l.handleBidderVerifiedResponse(payload)
+	case responses.RollupsSubscribed:
+		payload := new(responses.RollupsSubscribedResponse)
+		if err := json.Unmarshal(res.Payload, payload); err != nil {
+			return fmt.Errorf("failed to decode RollupsSubscribedResponse: %w", err)
+		}
+		return l.handleRollupsSubscribedResponse(payload)
+	case responses.RollupsUnsubscribed:
+		payload := new(responses.RollupsUnsubscribedResponse)
+		if err := json.Unmarshal(res.Payload, payload); err != nil {
+			return fmt.Errorf("failed to decode RollupsUnsubscribedResponse: %w", err)
+		}
+		return l.handleRollupsUnsubscribedResponse(payload)
+	case responses.AllRollupsUnsubscribed:
+		payload := new(responses.AllRollupsUnsubscribedResponse)
+		if err := json.Unmarshal(res.Payload, payload); err != nil {
+			return fmt.Errorf("failed to decode AllRollupsUnsubscribedResponse: %w", err)
+		}
+		return l.handleAllRollupsUnsubscribedResponse(payload)
 	case responses.BidSubmitted:
 		payload := new(responses.BidSubmittedResponse)
 		if err := json.Unmarshal(res.Payload, payload); err != nil {
-			return fmt.Errorf("failed to decode BidSubmittedMessage: %w", err)
+			return fmt.Errorf("failed to decode BidSubmittedResponse: %w", err)
 		}
 		return l.handleBidSubmittedResponse(payload)
 	default:
