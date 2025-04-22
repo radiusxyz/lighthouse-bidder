@@ -11,8 +11,8 @@ type Manager struct {
 	LighthouseWsClient *lighthousewsclient.LighthouseWsClient
 }
 
-func New(conf *config.Config, bidderAddress string, rollupIds []string) (*Manager, error) {
-	LighthouseWsClient, err := lighthousewsclient.NewLighthouseWsClient(conf.LighthouseUrl, bidderAddress, rollupIds)
+func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
+	LighthouseWsClient, err := lighthousewsclient.NewLighthouseWsClient(conf.LighthouseUrl, bidderAddress, bidderPrivateKey, rollupIds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to lighthouse: %w", err)
 	}

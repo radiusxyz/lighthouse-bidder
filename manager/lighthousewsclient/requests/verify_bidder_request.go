@@ -6,6 +6,7 @@ import (
 
 type VerifyBidderRequest struct {
 	BidderAddress string `json:"bidderAddress"`
+	Signature     []byte `json:"signature"`
 }
 
 func (r *VerifyBidderRequest) Marshal() ([]byte, error) {

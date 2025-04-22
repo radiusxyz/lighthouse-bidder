@@ -29,33 +29,33 @@ func NewLighthouseMessageHandler(serverConn *websocket.Conn, bidderAddress strin
 	}
 }
 
-func (l *LighthouseMessageHandler) handleBidderVerifiedResponse(res *responses.BidderVerifiedResponse) error {
-	logger.ColorPrintln(logger.BgGreen, "Successfully verified")
+func (l *LighthouseMessageHandler) handleBidderVerifiedResponse(resp *responses.BidderVerifiedResponse) error {
+	logger.Println("Successfully verified")
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleRollupsSubscribedResponse(res *responses.RollupsSubscribedResponse) error {
-	logger.ColorPrintln(logger.BgGreen, "Successfully subscribed")
+func (l *LighthouseMessageHandler) handleRollupsSubscribedResponse(resp *responses.RollupsSubscribedResponse) error {
+	logger.Println("Successfully subscribed")
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleRollupsUnsubscribedResponse(res *responses.RollupsUnsubscribedResponse) error {
+func (l *LighthouseMessageHandler) handleRollupsUnsubscribedResponse(resp *responses.RollupsUnsubscribedResponse) error {
 	logger.ColorPrintln(logger.BgGreen, "Successfully unsubscribed")
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleAllRollupsUnsubscribedResponse(res *responses.AllRollupsUnsubscribedResponse) error {
-	logger.ColorPrintln(logger.BgGreen, "Successfully all unsubscribed")
+func (l *LighthouseMessageHandler) handleAllRollupsUnsubscribedResponse(resp *responses.AllRollupsUnsubscribedResponse) error {
+	logger.Println("Successfully all unsubscribe")
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleBidSubmittedResponse(res *responses.BidSubmittedResponse) error {
-	logger.ColorPrintln(logger.BgGreen, "Successfully bid sent")
+func (l *LighthouseMessageHandler) handleBidSubmittedResponse(resp *responses.BidSubmittedResponse) error {
+	logger.Printf("Successfully bid submitted (auctionId: %s, round:%d)", *resp.AuctionId, *resp.Round)
 	return nil
 }
 
 func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundStartedEvent) error {
-	logger.ColorPrintln(logger.BgGreen, "Round "+strconv.Itoa(*event.Round)+" started")
+	logger.ColorPrintf(logger.BgGreen, "Round started (auctionId=%s, round=%d)", *event.AuctionId, *event.Round)
 
 	transaction := "0xTOB" + *event.AuctionId + strconv.Itoa(*event.Round) + l.bidderAddress
 

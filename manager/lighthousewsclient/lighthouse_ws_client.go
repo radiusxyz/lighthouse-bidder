@@ -5,35 +5,38 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/radiusxyz/lighthouse-bidder/common"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
 	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/requests"
 	"io"
 )
 
 type LighthouseWsClient struct {
-	conn          *websocket.Conn
-	rollupIds     []string
-	lighthouseUrl string
-	bidderAddress string
-	leaveCh       chan struct{}
-	envelopeCh    chan []byte
-	handler       *LighthouseMessageHandler
+	conn             *websocket.Conn
+	rollupIds        []string
+	lighthouseUrl    string
+	bidderAddress    string
+	bidderPrivateKey string
+	leaveCh          chan struct{}
+	envelopeCh       chan []byte
+	handler          *LighthouseMessageHandler
 }
 
-func NewLighthouseWsClient(lighthouseUrl string, bidderAddress string, rollupId []string) (*LighthouseWsClient, error) {
+func NewLighthouseWsClient(lighthouseUrl string, bidderAddress string, bidderPrivateKey string, rollupId []string) (*LighthouseWsClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(lighthouseUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	return &LighthouseWsClient{
-		conn:          conn,
-		rollupIds:     rollupId,
-		bidderAddress: bidderAddress,
-		lighthouseUrl: lighthouseUrl,
-		leaveCh:       make(chan struct{}),
-		envelopeCh:    make(chan []byte),
-		handler:       NewLighthouseMessageHandler(conn, bidderAddress),
+		conn:             conn,
+		rollupIds:        rollupId,
+		bidderAddress:    bidderAddress,
+		bidderPrivateKey: bidderPrivateKey,
+		lighthouseUrl:    lighthouseUrl,
+		leaveCh:          make(chan struct{}),
+		envelopeCh:       make(chan []byte),
+		handler:          NewLighthouseMessageHandler(conn, bidderAddress),
 	}, nil
 }
 
@@ -44,9 +47,16 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 
 	go l.ReadMessage()
 
+	signature, err := common.GetSignature(l.bidderAddress, l.bidderPrivateKey)
+	if err != nil {
+		panic(err)
+	}
+
 	verifyBidderRequest := &requests.VerifyBidderRequest{
 		BidderAddress: l.bidderAddress,
+		Signature:     signature,
 	}
+
 	if err := l.handler.SendMessage(requests.VerifyBidder, verifyBidderRequest); err != nil {
 		logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
 	}
@@ -55,6 +65,7 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 		BidderAddress: l.bidderAddress,
 		RollupIds:     l.rollupIds,
 	}
+
 	if err := l.handler.SendMessage(requests.SubscribeRollups, subscribeRollupsRequest); err != nil {
 		logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
 	}
