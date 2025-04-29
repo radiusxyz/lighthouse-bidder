@@ -8,7 +8,7 @@ type SubmitBidRequest struct {
 	BidderAddress string   `json:"bidderAddress"`
 	AuctionId     string   `json:"auctionId"`
 	Round         int      `json:"round"`
-	BidPrice      int      `json:"bidPrice"`
+	BidPrice      string   `json:"bidPrice"`
 	Transactions  []string `json:"transactions"`
 }
 

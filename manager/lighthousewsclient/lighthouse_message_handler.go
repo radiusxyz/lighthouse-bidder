@@ -63,7 +63,7 @@ func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundSt
 		BidderAddress: l.bidderAddress,
 		AuctionId:     *event.AuctionId,
 		Round:         *event.Round,
-		BidPrice:      10,
+		BidPrice:      "1000000000000000000",
 		Transactions:  []string{transaction},
 	}
 	if err := l.SendMessage(requests.SubmitBid, req); err != nil {
