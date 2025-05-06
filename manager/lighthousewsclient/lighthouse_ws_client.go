@@ -81,7 +81,7 @@ func (l *LighthouseWsClient) ReadMessage() {
 		if err != nil {
 			logger.Println("Read error:", err)
 			if errors.Is(err, io.EOF) {
-				fmt.Println("youngmin - eof")
+				fmt.Println("Error eof")
 				l.leaveCh <- struct{}{}
 			}
 			break
