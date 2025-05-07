@@ -2,6 +2,7 @@ package common
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"strings"
 )
@@ -16,14 +17,16 @@ func LoadPrivateKey(hexPrivateKey string) (*ecdsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-func GetSignature(target, hexPrivateKey string) ([]byte, error) {
+func GetSignature(target string, timestamp uint64, hexPrivateKey string) ([]byte, error) {
 	privateKey, err := LoadPrivateKey(hexPrivateKey)
 	if err != nil {
 		return nil, err
 	}
 
+	message := fmt.Sprintf("%s|%d", target, timestamp)
+
 	hash := crypto.Keccak256Hash(
-		[]byte(target),
+		[]byte(message),
 	)
 
 	signature, err := crypto.Sign(hash.Bytes(), privateKey)

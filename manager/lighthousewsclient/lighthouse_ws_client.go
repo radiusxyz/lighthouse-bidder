@@ -9,6 +9,7 @@ import (
 	"github.com/radiusxyz/lighthouse-bidder/logger"
 	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/requests"
 	"io"
+	"time"
 )
 
 type LighthouseWsClient struct {
@@ -47,13 +48,15 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 
 	go l.ReadMessage()
 
-	signature, err := common.GetSignature(l.bidderAddress, l.bidderPrivateKey)
+	timestamp := uint64(time.Now().Unix())
+	signature, err := common.GetSignature(l.bidderAddress, timestamp, l.bidderPrivateKey)
 	if err != nil {
 		panic(err)
 	}
 
 	verifyBidderRequest := &requests.VerifyBidderRequest{
 		BidderAddress: l.bidderAddress,
+		Timestamp:     timestamp,
 		Signature:     signature,
 	}
 

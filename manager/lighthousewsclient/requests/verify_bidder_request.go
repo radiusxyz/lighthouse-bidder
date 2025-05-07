@@ -6,6 +6,7 @@ import (
 
 type VerifyBidderRequest struct {
 	BidderAddress string `json:"bidderAddress"`
+	Timestamp     uint64 `json:"timestamp"`
 	Signature     []byte `json:"signature"`
 }
 
