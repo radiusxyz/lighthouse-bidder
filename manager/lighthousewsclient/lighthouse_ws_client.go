@@ -23,7 +23,7 @@ type LighthouseWsClient struct {
 	handler          *LighthouseMessageHandler
 }
 
-func NewLighthouseWsClient(lighthouseUrl string, bidderAddress string, bidderPrivateKey string, rollupId []string) (*LighthouseWsClient, error) {
+func New(lighthouseUrl string, bidderAddress string, bidderPrivateKey string, rollupId []string) (*LighthouseWsClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(lighthouseUrl, nil)
 	if err != nil {
 		return nil, err

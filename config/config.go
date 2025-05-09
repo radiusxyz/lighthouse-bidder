@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	LighthouseUrl string
+	RpcNodeUrl    string
 }
 
 func New() *Config {

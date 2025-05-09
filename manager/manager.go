@@ -5,24 +5,33 @@ import (
 	"fmt"
 	"github.com/radiusxyz/lighthouse-bidder/config"
 	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient"
+	"github.com/radiusxyz/lighthouse-bidder/manager/rpcnodewsclient"
 )
 
 type Manager struct {
-	LighthouseWsClient *lighthousewsclient.LighthouseWsClient
+	lighthouseWsClient *lighthousewsclient.LighthouseWsClient
+	rpcNodeWsClient    *rpcnodewsclient.RpcNodeWsClient
 }
 
 func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
-	LighthouseWsClient, err := lighthousewsclient.NewLighthouseWsClient(conf.LighthouseUrl, bidderAddress, bidderPrivateKey, rollupIds)
+	lighthouseWsClient, err := lighthousewsclient.New(conf.LighthouseUrl, bidderAddress, bidderPrivateKey, rollupIds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to lighthouse: %w", err)
 	}
 	fmt.Println("Connected to the WebSocket lighthouse!")
 
+	rpcNodeWsClient, err := rpcnodewsclient.New(conf.RpcNodeUrl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to rpc node: %w", err)
+	}
+	fmt.Println("Connected to the WebSocket rpc node!")
+
 	return &Manager{
-		LighthouseWsClient: LighthouseWsClient,
+		lighthouseWsClient: lighthouseWsClient,
+		rpcNodeWsClient:    rpcNodeWsClient,
 	}, nil
 }
 
 func (m *Manager) Start(ctx context.Context) {
-	m.LighthouseWsClient.Start(ctx)
+	m.lighthouseWsClient.Start(ctx)
 }
