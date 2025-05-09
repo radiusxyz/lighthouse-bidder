@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/events"
+	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/requests"
+	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/responses"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/events"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/requests"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/responses"
 	"strconv"
 )
 

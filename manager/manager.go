@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/radiusxyz/lighthouse-bidder/config"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient"
-	"github.com/radiusxyz/lighthouse-bidder/manager/rpcnodewsclient"
+	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient"
+	"github.com/radiusxyz/lighthouse-bidder/rpcnodewsclient"
 )
 
 type Manager struct {

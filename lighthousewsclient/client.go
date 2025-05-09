@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/radiusxyz/lighthouse-bidder/common"
+	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/requests"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/requests"
 	"io"
 	"time"
 )
