@@ -36,6 +36,13 @@ func (r *RpcNodeWsClient) Start(ctx context.Context) {
 	}
 
 	go r.ReadMessage()
+
+	subscribeReq := map[string]interface{}{
+		"id":     1,
+		"method": "eth_subscribe",
+		"params": []interface{}{"newHeads"},
+	}
+	r.conn.WriteJSON(subscribeReq)
 }
 
 func (r *RpcNodeWsClient) ReadMessage() {

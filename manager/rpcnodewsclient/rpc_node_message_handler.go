@@ -1,6 +1,9 @@
 package rpcnodewsclient
 
-import "github.com/gorilla/websocket"
+import (
+	"fmt"
+	"github.com/gorilla/websocket"
+)
 
 type RpcNodeMessageHandler struct {
 	serverConn *websocket.Conn
@@ -13,5 +16,6 @@ func NewRpcNodeMessageHandler(serverConn *websocket.Conn) *RpcNodeMessageHandler
 }
 
 func (r *RpcNodeMessageHandler) HandleEnvelope(envelope []byte) error {
+	fmt.Println("Received envelope: ", string(envelope))
 	return nil
 }
