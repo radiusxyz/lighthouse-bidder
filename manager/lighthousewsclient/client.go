@@ -37,7 +37,7 @@ func New(lighthouseUrl string, bidderAddress string, bidderPrivateKey string, ro
 		lighthouseUrl:    lighthouseUrl,
 		leaveCh:          make(chan struct{}),
 		envelopeCh:       make(chan []byte),
-		handler:          NewLighthouseMessageHandler(conn, bidderAddress),
+		handler:          NewLighthouseMessageHandler(conn, bidderAddress, bidderPrivateKey),
 	}, nil
 }
 
