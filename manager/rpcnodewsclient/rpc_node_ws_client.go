@@ -1,6 +1,7 @@
 package rpcnodewsclient
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -12,6 +13,7 @@ type RpcNodeWsClient struct {
 	conn       *websocket.Conn
 	leaveCh    chan struct{}
 	envelopeCh chan []byte
+	handler    *RpcNodeMessageHandler
 }
 
 func New(rpcNodeUrl string) (*RpcNodeWsClient, error) {
@@ -24,10 +26,11 @@ func New(rpcNodeUrl string) (*RpcNodeWsClient, error) {
 		conn:       conn,
 		leaveCh:    make(chan struct{}),
 		envelopeCh: make(chan []byte),
+		handler:    NewRpcNodeMessageHandler(conn),
 	}, nil
 }
 
-func (r *RpcNodeWsClient) Start() {
+func (r *RpcNodeWsClient) Start(ctx context.Context) {
 	for i := 0; i < 1; i++ {
 		go r.ManageCh()
 	}

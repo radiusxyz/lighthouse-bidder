@@ -34,4 +34,5 @@ func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rol
 
 func (m *Manager) Start(ctx context.Context) {
 	m.lighthouseWsClient.Start(ctx)
+	m.rpcNodeWsClient.Start(ctx)
 }
