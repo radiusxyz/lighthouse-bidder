@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/radiusxyz/lighthouse-bidder/common"
+	requests2 "github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/requests"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/requests"
 	"io"
 	"time"
 )
@@ -54,22 +54,22 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 		panic(err)
 	}
 
-	verifyBidderRequest := &requests.VerifyBidderRequest{
+	verifyBidderRequest := &requests2.VerifyBidderRequest{
 		BidderAddress: l.bidderAddress,
 		Timestamp:     timestamp,
 		Signature:     signature,
 	}
 
-	if err := l.handler.SendMessage(requests.VerifyBidder, verifyBidderRequest); err != nil {
+	if err := l.handler.SendMessage(requests2.VerifyBidder, verifyBidderRequest); err != nil {
 		logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
 	}
 
-	subscribeRollupsRequest := &requests.SubscribeRollupsRequest{
+	subscribeRollupsRequest := &requests2.SubscribeRollupsRequest{
 		BidderAddress: l.bidderAddress,
 		RollupIds:     l.rollupIds,
 	}
 
-	if err := l.handler.SendMessage(requests.SubscribeRollups, subscribeRollupsRequest); err != nil {
+	if err := l.handler.SendMessage(requests2.SubscribeRollups, subscribeRollupsRequest); err != nil {
 		logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
 	}
 }

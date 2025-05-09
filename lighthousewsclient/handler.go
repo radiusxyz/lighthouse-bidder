@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	events2 "github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/events"
+	requests2 "github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/requests"
+	responses2 "github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/responses"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/events"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/requests"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient/responses"
 	"strconv"
 )
 
 type BaseMessage struct {
-	Id        *string           `json:"id"`
-	EventType *events.EventType `json:"eventType"`
+	Id        *string            `json:"id"`
+	EventType *events2.EventType `json:"eventType"`
 }
 
 type LighthouseMessageHandler struct {
@@ -29,44 +29,44 @@ func NewLighthouseMessageHandler(serverConn *websocket.Conn, bidderAddress strin
 	}
 }
 
-func (l *LighthouseMessageHandler) handleBidderVerifiedResponse(resp *responses.BidderVerifiedResponse) error {
+func (l *LighthouseMessageHandler) handleBidderVerifiedResponse(resp *responses2.BidderVerifiedResponse) error {
 	logger.Println("Successfully verified")
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleRollupsSubscribedResponse(resp *responses.RollupsSubscribedResponse) error {
+func (l *LighthouseMessageHandler) handleRollupsSubscribedResponse(resp *responses2.RollupsSubscribedResponse) error {
 	logger.Println("Successfully subscribed")
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleRollupsUnsubscribedResponse(resp *responses.RollupsUnsubscribedResponse) error {
+func (l *LighthouseMessageHandler) handleRollupsUnsubscribedResponse(resp *responses2.RollupsUnsubscribedResponse) error {
 	logger.ColorPrintln(logger.BgGreen, "Successfully unsubscribed")
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleAllRollupsUnsubscribedResponse(resp *responses.AllRollupsUnsubscribedResponse) error {
+func (l *LighthouseMessageHandler) handleAllRollupsUnsubscribedResponse(resp *responses2.AllRollupsUnsubscribedResponse) error {
 	logger.Println("Successfully all unsubscribe")
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleBidSubmittedResponse(resp *responses.BidSubmittedResponse) error {
+func (l *LighthouseMessageHandler) handleBidSubmittedResponse(resp *responses2.BidSubmittedResponse) error {
 	logger.Printf("Successfully bid submitted (auctionId: %s, round:%d)", *resp.AuctionId, *resp.Round)
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundStartedEvent) error {
+func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events2.RoundStartedEvent) error {
 	logger.ColorPrintf(logger.BgGreen, "Round started (auctionId=%s, round=%d)", *event.AuctionId, *event.Round)
 
 	transaction := "0xTOB" + *event.AuctionId + strconv.Itoa(*event.Round) + l.bidderAddress
 
-	req := &requests.SubmitBidRequest{
+	req := &requests2.SubmitBidRequest{
 		BidderAddress: l.bidderAddress,
 		AuctionId:     *event.AuctionId,
 		Round:         *event.Round,
 		BidPrice:      "1000000000000000000",
 		Transactions:  []string{transaction},
 	}
-	if err := l.SendMessage(requests.SubmitBid, req); err != nil {
+	if err := l.SendMessage(requests2.SubmitBid, req); err != nil {
 		return err
 	}
 
@@ -75,7 +75,7 @@ func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundSt
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleTobEvent(event *events.TobEvent) error {
+func (l *LighthouseMessageHandler) handleTobEvent(event *events2.TobEvent) error {
 	logger.ColorPrintln(logger.BgGreen, "Received tob. auctionId "+*event.AuctionId)
 	return nil
 }
@@ -88,7 +88,7 @@ func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
 
 	switch {
 	case base.Id != nil:
-		res := new(responses.ResponseMessage)
+		res := new(responses2.ResponseMessage)
 		if err := json.Unmarshal(envelope, &res); err != nil {
 			return fmt.Errorf("failed to parse response: %w", err)
 		}
@@ -96,7 +96,7 @@ func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
 			return err
 		}
 	case base.EventType != nil:
-		event := new(events.EventMessage)
+		event := new(events2.EventMessage)
 		if err := json.Unmarshal(envelope, &event); err != nil {
 			return fmt.Errorf("failed to parse event: %w", err)
 		}
@@ -109,38 +109,38 @@ func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleResponse(res *responses.ResponseMessage) error {
+func (l *LighthouseMessageHandler) handleResponse(res *responses2.ResponseMessage) error {
 	if res.Error != nil {
 		return fmt.Errorf("[ErrorResponse] id=%s type=%s msg=%s", res.Id, res.ResponseType, res.Error.Message)
 	}
 
 	switch res.ResponseType {
-	case responses.BidderVerified:
-		payload := new(responses.BidderVerifiedResponse)
+	case responses2.BidderVerified:
+		payload := new(responses2.BidderVerifiedResponse)
 		if err := json.Unmarshal(res.Payload, payload); err != nil {
 			return fmt.Errorf("failed to decode BidderRegisteredResponse: %w", err)
 		}
 		return l.handleBidderVerifiedResponse(payload)
-	case responses.RollupsSubscribed:
-		payload := new(responses.RollupsSubscribedResponse)
+	case responses2.RollupsSubscribed:
+		payload := new(responses2.RollupsSubscribedResponse)
 		if err := json.Unmarshal(res.Payload, payload); err != nil {
 			return fmt.Errorf("failed to decode RollupsSubscribedResponse: %w", err)
 		}
 		return l.handleRollupsSubscribedResponse(payload)
-	case responses.RollupsUnsubscribed:
-		payload := new(responses.RollupsUnsubscribedResponse)
+	case responses2.RollupsUnsubscribed:
+		payload := new(responses2.RollupsUnsubscribedResponse)
 		if err := json.Unmarshal(res.Payload, payload); err != nil {
 			return fmt.Errorf("failed to decode RollupsUnsubscribedResponse: %w", err)
 		}
 		return l.handleRollupsUnsubscribedResponse(payload)
-	case responses.AllRollupsUnsubscribed:
-		payload := new(responses.AllRollupsUnsubscribedResponse)
+	case responses2.AllRollupsUnsubscribed:
+		payload := new(responses2.AllRollupsUnsubscribedResponse)
 		if err := json.Unmarshal(res.Payload, payload); err != nil {
 			return fmt.Errorf("failed to decode AllRollupsUnsubscribedResponse: %w", err)
 		}
 		return l.handleAllRollupsUnsubscribedResponse(payload)
-	case responses.BidSubmitted:
-		payload := new(responses.BidSubmittedResponse)
+	case responses2.BidSubmitted:
+		payload := new(responses2.BidSubmittedResponse)
 		if err := json.Unmarshal(res.Payload, payload); err != nil {
 			return fmt.Errorf("failed to decode BidSubmittedResponse: %w", err)
 		}
@@ -150,16 +150,16 @@ func (l *LighthouseMessageHandler) handleResponse(res *responses.ResponseMessage
 	}
 }
 
-func (l *LighthouseMessageHandler) handleEvent(event *events.EventMessage) error {
+func (l *LighthouseMessageHandler) handleEvent(event *events2.EventMessage) error {
 	switch event.EventType {
-	case events.RoundStarted:
-		payload := new(events.RoundStartedEvent)
+	case events2.RoundStarted:
+		payload := new(events2.RoundStartedEvent)
 		if err := json.Unmarshal(event.Payload, payload); err != nil {
 			return fmt.Errorf("failed to decode RoundStartedMessage: %w", err)
 		}
 		return l.handleRoundStartedEvent(payload)
-	case events.Tob:
-		payload := new(events.TobEvent)
+	case events2.Tob:
+		payload := new(events2.TobEvent)
 		if err := json.Unmarshal(event.Payload, payload); err != nil {
 			return fmt.Errorf("failed to decode BidSubmittedMessage: %w", err)
 		}
@@ -169,13 +169,13 @@ func (l *LighthouseMessageHandler) handleEvent(event *events.EventMessage) error
 	}
 }
 
-func (l *LighthouseMessageHandler) SendMessage(requestType requests.RequestType, message requests.RequestParams) error {
+func (l *LighthouseMessageHandler) SendMessage(requestType requests2.RequestType, message requests2.RequestParams) error {
 	payload, err := message.Marshal()
 	if err != nil {
 		return fmt.Errorf("failed to serialize message: %w", err)
 	}
 
-	requestMessage := &requests.RequestMessage{
+	requestMessage := &requests2.RequestMessage{
 		Id:          uuid.New().String(),
 		RequestType: requestType,
 		Payload:     payload,

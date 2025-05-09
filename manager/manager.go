@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/radiusxyz/lighthouse-bidder/config"
-	"github.com/radiusxyz/lighthouse-bidder/manager/lighthousewsclient"
+	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient"
 )
 
 type Manager struct {
