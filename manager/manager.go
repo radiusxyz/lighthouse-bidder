@@ -14,7 +14,7 @@ type Manager struct {
 }
 
 func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
-	rpcNodeWsClient, err := rpcnodewsclient.New(conf.RpcNodeUrl)
+	rpcNodeWsClient, err := rpcnodewsclient.New(conf.RpcNodeWsUrl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to rpc node: %w", err)
 	}
