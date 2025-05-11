@@ -3,13 +3,14 @@ package lighthousewsclient
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/events"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/requests"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/responses"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
-	"strconv"
+	"github.com/radiusxyz/lighthouse-bidder/txbuilder"
 )
 
 type BaseMessage struct {
@@ -21,14 +22,21 @@ type LighthouseMessageHandler struct {
 	serverConn       *websocket.Conn
 	bidderAddress    string
 	bidderPrivateKey string
+	txBuilder        *txbuilder.TxBuilder
 }
 
-func NewLighthouseMessageHandler(serverConn *websocket.Conn, bidderAddress string, bidderPrivateKey string) *LighthouseMessageHandler {
+func NewHandler(serverConn *websocket.Conn, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string) (*LighthouseMessageHandler, error) {
+	txBuilder, err := txbuilder.New(rpcNodeHttpUrl)
+	if err != nil {
+		return nil, err
+	}
+
 	return &LighthouseMessageHandler{
 		serverConn:       serverConn,
 		bidderAddress:    bidderAddress,
 		bidderPrivateKey: bidderPrivateKey,
-	}
+		txBuilder:        txBuilder,
+	}, nil
 }
 
 func (l *LighthouseMessageHandler) handleBidderVerifiedResponse(resp *responses.BidderVerifiedResponse) error {
@@ -59,14 +67,19 @@ func (l *LighthouseMessageHandler) handleBidSubmittedResponse(resp *responses.Bi
 func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundStartedEvent) error {
 	logger.ColorPrintf(logger.BgGreen, "Round started (auctionId=%s, round=%d)", *event.AuctionId, *event.Round)
 
-	transaction := "0xTOB" + *event.AuctionId + strconv.Itoa(*event.Round) + l.bidderAddress
+	hexTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"))
+	if err != nil {
+		return err
+	}
+
+	logger.Println("Transaction created")
 
 	req := &requests.SubmitBidRequest{
 		BidderAddress: l.bidderAddress,
 		AuctionId:     *event.AuctionId,
 		Round:         *event.Round,
 		BidPrice:      "1000000000000000000",
-		Transactions:  []string{transaction},
+		Transactions:  []string{hexTx},
 	}
 	if err := l.SendMessage(requests.SubmitBid, req); err != nil {
 		return err
@@ -189,52 +202,3 @@ func (l *LighthouseMessageHandler) SendMessage(requestType requests.RequestType,
 
 	return l.serverConn.WriteMessage(websocket.BinaryMessage, data)
 }
-
-//func transfer(privateKeyHex string, toAddress string, amount string) (string, error) {
-//	privateKey, err := crypto.HexToECDSA(privateKeyHex)
-//	if err != nil {
-//		log.Fatalf("invalid private key: %v", err)
-//	}
-//
-//	// 3. 주소, nonce 조회
-//	publicKey := privateKey.Public().(*ecdsa.PublicKey)
-//	fromAddress := crypto.PubkeyToAddress(*publicKey)
-//
-//	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
-//	if err != nil {
-//		log.Fatalf("failed to get nonce: %v", err)
-//	}
-//
-//	// 4. 트랜잭션 파라미터 설정
-//	toAddress := common.HexToAddress("0xRecipientAddressHere")
-//	value := big.NewInt(10000000000000000)                        // 0.01 ETH
-//	gasLimit := uint64(21000)                                     // 기본 전송
-//	gasPrice, err := client.SuggestGasPrice(context.Background()) // legacy tx
-//	if err != nil {
-//		log.Fatalf("failed to suggest gas price: %v", err)
-//	}
-//
-//	// 5. 트랜잭션 생성 (legacy 트랜잭션 예시)
-//	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, nil)
-//
-//	// 6. 체인 ID 확인 (ex: 1=mainnet, 5=Goerli, 1337=anvil)
-//	chainID, err := client.NetworkID(context.Background())
-//	if err != nil {
-//		log.Fatalf("failed to get chain ID: %v", err)
-//	}
-//
-//	// 7. 서명 및 RLP 인코딩
-//	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
-//	if err != nil {
-//		log.Fatalf("failed to sign tx: %v", err)
-//	}
-//
-//	// 8. rawTransaction 생성
-//	rawTxBytes, err := signedTx.MarshalBinary()
-//	if err != nil {
-//		log.Fatalf("failed to encode tx: %v", err)
-//	}
-//
-//	rawTxHex := "0x" + hex.EncodeToString(rawTxBytes)
-//	fmt.Println("Raw Transaction:", rawTxHex)
-//}

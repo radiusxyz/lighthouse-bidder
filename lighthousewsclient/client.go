@@ -23,21 +23,26 @@ type LighthouseWsClient struct {
 	handler          *LighthouseMessageHandler
 }
 
-func New(lighthouseUrl string, bidderAddress string, bidderPrivateKey string, rollupId []string) (*LighthouseWsClient, error) {
+func New(lighthouseUrl string, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*LighthouseWsClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(lighthouseUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	handler, err := NewHandler(conn, rpcNodeHttpUrl, bidderAddress, bidderPrivateKey)
 	if err != nil {
 		return nil, err
 	}
 
 	return &LighthouseWsClient{
 		conn:             conn,
-		rollupIds:        rollupId,
+		rollupIds:        rollupIds,
 		bidderAddress:    bidderAddress,
 		bidderPrivateKey: bidderPrivateKey,
 		lighthouseUrl:    lighthouseUrl,
 		leaveCh:          make(chan struct{}),
 		envelopeCh:       make(chan []byte),
-		handler:          NewLighthouseMessageHandler(conn, bidderAddress, bidderPrivateKey),
+		handler:          handler,
 	}, nil
 }
 

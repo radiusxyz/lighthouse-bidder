@@ -14,17 +14,17 @@ type Manager struct {
 }
 
 func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
-	lighthouseWsClient, err := lighthousewsclient.New(conf.LighthouseUrl, bidderAddress, bidderPrivateKey, rollupIds)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to lighthouse: %w", err)
-	}
-	fmt.Println("Connected to the WebSocket lighthouse!")
-
 	rpcNodeWsClient, err := rpcnodewsclient.New(conf.RpcNodeUrl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to rpc node: %w", err)
 	}
 	fmt.Println("Connected to the WebSocket rpc node!")
+
+	lighthouseWsClient, err := lighthousewsclient.New(conf.LighthouseUrl, conf.RpcNodeHttpUrl, bidderAddress, bidderPrivateKey, rollupIds)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to lighthouse: %w", err)
+	}
+	fmt.Println("Connected to the WebSocket lighthouse!")
 
 	return &Manager{
 		lighthouseWsClient: lighthouseWsClient,
