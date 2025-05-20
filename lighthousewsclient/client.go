@@ -12,6 +12,16 @@ import (
 	"time"
 )
 
+type Bidder interface {
+	MyAuctionRoundTxs(auctionId string, roundIndex int) []string
+	CurrentAuctionConfirmedTxScanIndex(auctionId string) int
+	MyCurrentAuctionTxCount(auctionId string) uint64
+	IncreaseMyCurrentAuctionTxCount(auctionId string, addedTxCount uint64) uint64
+	ResetMyCurrentAuctionInfo(auctionId string)
+	SetMyCurrentRoundInfo(auctionId string, roundIndex int, scanIndex int, addedTxs []string)
+	//InitializeCurrentRound(auctionId string)
+}
+
 type LighthouseWsClient struct {
 	conn             *websocket.Conn
 	rollupIds        []string
@@ -23,13 +33,13 @@ type LighthouseWsClient struct {
 	handler          *LighthouseMessageHandler
 }
 
-func New(lighthouseUrl string, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*LighthouseWsClient, error) {
+func New(bidder Bidder, lighthouseUrl string, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*LighthouseWsClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(lighthouseUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	handler, err := NewHandler(conn, rpcNodeHttpUrl, bidderAddress, bidderPrivateKey)
+	handler, err := NewHandler(bidder, conn, rpcNodeHttpUrl, bidderAddress, bidderPrivateKey)
 	if err != nil {
 		return nil, err
 	}

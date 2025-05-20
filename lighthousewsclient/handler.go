@@ -23,9 +23,10 @@ type LighthouseMessageHandler struct {
 	bidderAddress    string
 	bidderPrivateKey string
 	txBuilder        *txbuilder.TxBuilder
+	bidder           Bidder
 }
 
-func NewHandler(serverConn *websocket.Conn, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string) (*LighthouseMessageHandler, error) {
+func NewHandler(bidder Bidder, serverConn *websocket.Conn, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string) (*LighthouseMessageHandler, error) {
 	txBuilder, err := txbuilder.New(rpcNodeHttpUrl)
 	if err != nil {
 		return nil, err
@@ -36,6 +37,7 @@ func NewHandler(serverConn *websocket.Conn, rpcNodeHttpUrl string, bidderAddress
 		bidderAddress:    bidderAddress,
 		bidderPrivateKey: bidderPrivateKey,
 		txBuilder:        txBuilder,
+		bidder:           bidder,
 	}, nil
 }
 
@@ -67,7 +69,32 @@ func (l *LighthouseMessageHandler) handleBidSubmittedResponse(resp *responses.Bi
 func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundStartedEvent) error {
 	logger.ColorPrintf(logger.BgGreen, "Round started (auctionId=%s, round=%d)", *event.AuctionId, *event.Round)
 
-	hexTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"))
+	// Todo: 이미 받은 이벤트인지
+
+	var myPrevRoundTxs []string
+	if *event.Round == 0 {
+		l.bidder.ResetMyCurrentAuctionInfo(*event.AuctionId)
+	} else {
+		myPrevRoundTxs = l.bidder.MyAuctionRoundTxs(*event.AuctionId, *event.Round-1)
+	}
+
+	index := l.bidder.CurrentAuctionConfirmedTxScanIndex(*event.AuctionId)
+
+	confirmedTxCount := uint64(0)
+	if index < len(event.ConfirmedTransactions) {
+		for i := index; i < len(event.ConfirmedTransactions); i++ {
+			for _, tx := range myPrevRoundTxs {
+				if tx == event.ConfirmedTransactions[i] {
+					confirmedTxCount++
+					break
+				}
+			}
+		}
+	}
+
+	myCurrentAuctionTxCount := l.bidder.IncreaseMyCurrentAuctionTxCount(*event.AuctionId, confirmedTxCount)
+
+	hexTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"), myCurrentAuctionTxCount)
 	if err != nil {
 		return err
 	}
@@ -81,12 +108,13 @@ func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundSt
 		BidPrice:      "1000000000000000000",
 		Transactions:  []string{hexTx},
 	}
-	if err := l.SendMessage(requests.SubmitBid, req); err != nil {
+	if err = l.SendMessage(requests.SubmitBid, req); err != nil {
 		return err
 	}
 
 	logger.Println("Bid submitted")
 
+	l.bidder.SetMyCurrentRoundInfo(*event.AuctionId, *event.Round, len(event.ConfirmedTransactions), []string{hexTx})
 	return nil
 }
 

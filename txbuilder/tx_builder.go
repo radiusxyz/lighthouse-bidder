@@ -30,7 +30,7 @@ func New(url string) (*TxBuilder, error) {
 	}, nil
 }
 
-func (t *TxBuilder) GetSignedTransaction(privateKeyHex string, toAddress common.Address) (string, error) {
+func (t *TxBuilder) GetSignedTransaction(privateKeyHex string, toAddress common.Address, myCurrentAuctionTxCount uint64) (string, error) {
 	privateKey, err := crypto.HexToECDSA(strings.TrimPrefix(privateKeyHex, "0x"))
 	if err != nil {
 		log.Fatalf("invalid private key: %v", err)
@@ -43,21 +43,22 @@ func (t *TxBuilder) GetSignedTransaction(privateKeyHex string, toAddress common.
 	if err != nil {
 		log.Fatalf("failed to get nonce: %v", err)
 	}
-
-	value := big.NewInt(10000000000000000)                             // 0.01 ETH
-	gasLimit := uint64(21000)                                          // 기본 전송
-	gasPrice, err := t.ethClient.SuggestGasPrice(context.Background()) // legacy tx
+	fmt.Println("Nonce:", nonce)
+	fmt.Println("myCurrentAuctionTxCount:", myCurrentAuctionTxCount)
+	value := big.NewInt(10000000000000000)
+	gasLimit := uint64(21000)
+	gasPrice, err := t.ethClient.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Fatalf("failed to suggest gas price: %v", err)
 	}
+	fmt.Println("Gas Price:", gasPrice)
+	tx := types.NewTransaction(nonce+myCurrentAuctionTxCount, toAddress, value, gasLimit, gasPrice, nil)
 
-	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, nil)
-
-	chainID, err := t.ethClient.NetworkID(context.Background())
+	chainID, err := t.ethClient.ChainID(context.Background())
 	if err != nil {
 		log.Fatalf("failed to get chain ID: %v", err)
 	}
-
+	fmt.Println("Chain ID:", chainID)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
 		log.Fatalf("failed to sign tx: %v", err)
