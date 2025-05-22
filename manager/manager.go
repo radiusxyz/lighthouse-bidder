@@ -3,7 +3,7 @@ package manager
 import (
 	"context"
 	"fmt"
-	"github.com/radiusxyz/lighthouse-bidder/anvilclient"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/radiusxyz/lighthouse-bidder/config"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient"
 	"github.com/radiusxyz/lighthouse-bidder/rpcnodewsclient"
@@ -15,16 +15,16 @@ type Manager struct {
 	myCurrentAuctionTxCount            map[string]uint64
 	lighthouseWsClient                 *lighthousewsclient.LighthouseWsClient
 	rpcNodeWsClient                    *rpcnodewsclient.RpcNodeWsClient
-	anvil                              *anvilclient.Anvil
+	rpcNodeHttpClient                  *ethclient.Client
 }
 
 func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
-	anvil, err := anvilclient.New(conf.RpcNodeHttpUrl)
+	rpcNodeHttpClient, err := ethclient.Dial(conf.RpcNodeHttpUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	rpcNodeWsClient, err := rpcnodewsclient.New(conf.RpcNodeWsUrl)
+	rpcNodeWsClient, err := rpcnodewsclient.New(conf.RpcNodeWsUrl, conf.AnvilUrl, rpcNodeHttpClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to rpc node: %w", err)
 	}
@@ -35,17 +35,17 @@ func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rol
 		currentAuctionConfirmedTxScanIndex: make(map[string]int),
 		myCurrentAuctionTxCount:            make(map[string]uint64),
 		rpcNodeWsClient:                    rpcNodeWsClient,
-		anvil:                              anvil,
+		rpcNodeHttpClient:                  rpcNodeHttpClient,
 	}
 
 	lighthouseWsClient, err := lighthousewsclient.New(manager, conf.LighthouseUrl, conf.RpcNodeHttpUrl, bidderAddress, bidderPrivateKey, rollupIds)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to lighthouse: %w", err)
 	}
+
 	fmt.Println("Connected to the WebSocket lighthouse!")
 
 	manager.lighthouseWsClient = lighthouseWsClient
-
 	return manager, nil
 }
 
@@ -82,6 +82,6 @@ func (m *Manager) SetMyCurrentRoundInfo(auctionId string, roundIndex int, scanIn
 	m.myAuctionRoundTxs[auctionId][roundIndex] = addedTxs
 }
 
-//func (m *Manager) InitializeCurrentRound(auctionId string) {
-//	m.myAuctionRoundTxs[auctionId] = make(map[int][]string)
-//}
+func (m *Manager) RpcNodeHttpClient() *ethclient.Client {
+	return m.rpcNodeHttpClient
+}

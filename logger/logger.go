@@ -36,8 +36,8 @@ const (
 	BgWhite   = "\033[47m"
 )
 
-func ColorPrintln(color, message string) {
-	log.Println(color + message + Reset)
+func ColorPrintln(color string, v ...any) {
+	log.Println(color, v, Reset)
 }
 
 func ColorPrintf(color, message string, a ...any) {

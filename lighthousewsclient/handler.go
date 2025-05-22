@@ -27,7 +27,7 @@ type LighthouseMessageHandler struct {
 }
 
 func NewHandler(bidder Bidder, serverConn *websocket.Conn, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string) (*LighthouseMessageHandler, error) {
-	txBuilder, err := txbuilder.New(rpcNodeHttpUrl)
+	txBuilder, err := txbuilder.New(bidder.RpcNodeHttpClient(), rpcNodeHttpUrl)
 	if err != nil {
 		return nil, err
 	}

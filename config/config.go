@@ -10,6 +10,7 @@ type Config struct {
 	LighthouseUrl  string
 	RpcNodeWsUrl   string
 	RpcNodeHttpUrl string
+	AnvilUrl       string
 }
 
 func New() *Config {

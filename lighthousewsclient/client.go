@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gorilla/websocket"
 	"github.com/radiusxyz/lighthouse-bidder/common"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/requests"
@@ -19,7 +20,7 @@ type Bidder interface {
 	IncreaseMyCurrentAuctionTxCount(auctionId string, addedTxCount uint64) uint64
 	ResetMyCurrentAuctionInfo(auctionId string)
 	SetMyCurrentRoundInfo(auctionId string, roundIndex int, scanIndex int, addedTxs []string)
-	//InitializeCurrentRound(auctionId string)
+	RpcNodeHttpClient() *ethclient.Client
 }
 
 type LighthouseWsClient struct {

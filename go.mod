@@ -6,6 +6,7 @@ toolchain go1.23.7
 
 require (
 	github.com/ethereum/go-ethereum v1.15.11
+	github.com/goccy/go-json v0.10.4
 	github.com/gorilla/websocket v1.5.3
 	github.com/pelletier/go-toml v1.9.5
 )
