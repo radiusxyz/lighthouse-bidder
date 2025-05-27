@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gorilla/websocket"
 	"github.com/radiusxyz/lighthouse-bidder/common"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/requests"
@@ -12,16 +11,6 @@ import (
 	"io"
 	"time"
 )
-
-type Bidder interface {
-	MyAuctionRoundTxs(auctionId string, roundIndex int) []string
-	CurrentAuctionConfirmedTxScanIndex(auctionId string) int
-	MyCurrentAuctionTxCount(auctionId string) uint64
-	IncreaseMyCurrentAuctionTxCount(auctionId string, addedTxCount uint64) uint64
-	ResetMyCurrentAuctionInfo(auctionId string)
-	SetMyCurrentRoundInfo(auctionId string, roundIndex int, scanIndex int, addedTxs []string)
-	RpcNodeHttpClient() *ethclient.Client
-}
 
 type LighthouseWsClient struct {
 	conn             *websocket.Conn
@@ -34,7 +23,7 @@ type LighthouseWsClient struct {
 	handler          *LighthouseMessageHandler
 }
 
-func New(bidder Bidder, lighthouseUrl string, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*LighthouseWsClient, error) {
+func New(bidder common.Bidder, lighthouseUrl string, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*LighthouseWsClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(lighthouseUrl, nil)
 	if err != nil {
 		return nil, err
@@ -76,7 +65,7 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 		Signature:     signature,
 	}
 
-	if err := l.handler.SendMessage(requests.VerifyBidder, verifyBidderRequest); err != nil {
+	if err = l.handler.SendMessage(requests.VerifyBidder, verifyBidderRequest); err != nil {
 		logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
 	}
 
@@ -85,7 +74,7 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 		RollupIds:     l.rollupIds,
 	}
 
-	if err := l.handler.SendMessage(requests.SubscribeRollups, subscribeRollupsRequest); err != nil {
+	if err = l.handler.SendMessage(requests.SubscribeRollups, subscribeRollupsRequest); err != nil {
 		logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
 	}
 }

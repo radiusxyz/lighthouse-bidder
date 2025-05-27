@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	common2 "github.com/radiusxyz/lighthouse-bidder/common"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/events"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/requests"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/responses"
@@ -23,10 +24,10 @@ type LighthouseMessageHandler struct {
 	bidderAddress    string
 	bidderPrivateKey string
 	txBuilder        *txbuilder.TxBuilder
-	bidder           Bidder
+	bidder           common2.Bidder
 }
 
-func NewHandler(bidder Bidder, serverConn *websocket.Conn, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string) (*LighthouseMessageHandler, error) {
+func NewHandler(bidder common2.Bidder, serverConn *websocket.Conn, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string) (*LighthouseMessageHandler, error) {
 	txBuilder, err := txbuilder.New(bidder.RpcNodeHttpClient(), rpcNodeHttpUrl)
 	if err != nil {
 		return nil, err
@@ -73,12 +74,16 @@ func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundSt
 
 	var myPrevRoundTxs []string
 	if *event.Round == 0 {
-		l.bidder.ResetMyCurrentAuctionInfo(*event.AuctionId)
+		l.bidder.ResetCurrentAuctionMyInfo(*event.RollupId)
 	} else {
-		myPrevRoundTxs = l.bidder.MyAuctionRoundTxs(*event.AuctionId, *event.Round-1)
+		txs, err := l.bidder.CurrentAuctionRoundMyTxs(*event.RollupId, *event.Round-1)
+		if err != nil {
+			return err
+		}
+		myPrevRoundTxs = txs
 	}
 
-	index := l.bidder.CurrentAuctionConfirmedTxScanIndex(*event.AuctionId)
+	index := l.bidder.CurrentAuctionConfirmedTxScanIndex(*event.RollupId)
 
 	confirmedTxCount := uint64(0)
 	if index < len(event.ConfirmedTransactions) {
@@ -92,7 +97,7 @@ func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundSt
 		}
 	}
 
-	myCurrentAuctionTxCount := l.bidder.IncreaseMyCurrentAuctionTxCount(*event.AuctionId, confirmedTxCount)
+	myCurrentAuctionTxCount := l.bidder.IncreaseCurrentAuctionMyTxCount(*event.RollupId, confirmedTxCount)
 
 	hexTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"), myCurrentAuctionTxCount)
 	if err != nil {
@@ -114,12 +119,15 @@ func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundSt
 
 	logger.Println("Bid submitted")
 
-	l.bidder.SetMyCurrentRoundInfo(*event.AuctionId, *event.Round, len(event.ConfirmedTransactions), []string{hexTx})
+	l.bidder.SetCurrentAuctionRoundMyInfo(*event.RollupId, *event.Round, len(event.ConfirmedTransactions), []string{hexTx})
 	return nil
 }
 
 func (l *LighthouseMessageHandler) handleTobEvent(event *events.TobEvent) error {
 	logger.ColorPrintln(logger.BgGreen, "Received tob. auctionId "+*event.AuctionId)
+	if err := l.bidder.SaveCurrentAuctionTobTxs(*event.RollupId, event.ConfirmedTransactions); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -198,13 +206,13 @@ func (l *LighthouseMessageHandler) handleEvent(event *events.EventMessage) error
 	case events.RoundStarted:
 		payload := new(events.RoundStartedEvent)
 		if err := json.Unmarshal(event.Payload, payload); err != nil {
-			return fmt.Errorf("failed to decode RoundStartedMessage: %w", err)
+			return fmt.Errorf("failed to decode RoundStartedEvent: %w", err)
 		}
 		return l.handleRoundStartedEvent(payload)
 	case events.Tob:
 		payload := new(events.TobEvent)
 		if err := json.Unmarshal(event.Payload, payload); err != nil {
-			return fmt.Errorf("failed to decode BidSubmittedMessage: %w", err)
+			return fmt.Errorf("failed to decode TobEvent: %w", err)
 		}
 		return l.handleTobEvent(payload)
 	default:

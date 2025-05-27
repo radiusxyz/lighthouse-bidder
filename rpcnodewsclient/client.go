@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gorilla/websocket"
+	common2 "github.com/radiusxyz/lighthouse-bidder/common"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
 	"io"
 )
@@ -17,13 +18,13 @@ type RpcNodeWsClient struct {
 	handler    *RpcNodeMessageHandler
 }
 
-func New(rpcNodeWsUrl string, anvilUrl string, rpcNodeHttpClient *ethclient.Client) (*RpcNodeWsClient, error) {
+func New(rollupId string, bidder common2.Bidder, rpcNodeWsUrl string, anvilUrl string, rpcNodeHttpClient *ethclient.Client) (*RpcNodeWsClient, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(rpcNodeWsUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	handler, err := NewRpcNodeMessageHandler(conn, rpcNodeHttpClient, anvilUrl)
+	handler, err := NewRpcNodeMessageHandler(rollupId, bidder, conn, rpcNodeHttpClient, anvilUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +47,7 @@ func (r *RpcNodeWsClient) Start(ctx context.Context) {
 	subscribeReq := map[string]interface{}{
 		"id":     1,
 		"method": "eth_subscribe",
-		"params": []interface{}{"newPendingTransactions"},
+		"params": []interface{}{"newSlotTransactions"},
 	}
 	r.conn.WriteJSON(subscribeReq)
 }

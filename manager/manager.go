@@ -10,9 +10,10 @@ import (
 )
 
 type Manager struct {
-	myAuctionRoundTxs                  map[string]map[int][]string // auctionId -> roundIndex -> txs
-	currentAuctionConfirmedTxScanIndex map[string]int              // auctionId -> index
-	myCurrentAuctionTxCount            map[string]uint64
+	currentAuctionTobTxs               map[string][]string         // rollupId -> rawTransactions
+	currentAuctionRoundMyTxs           map[string]map[int][]string // rollupId -> roundIndex -> txs
+	currentAuctionConfirmedTxScanIndex map[string]int              // rollupId -> index
+	currentAuctionMyTxCount            map[string]uint64           //rollupId -> auction tx count
 	lighthouseWsClient                 *lighthousewsclient.LighthouseWsClient
 	rpcNodeWsClient                    *rpcnodewsclient.RpcNodeWsClient
 	rpcNodeHttpClient                  *ethclient.Client
@@ -24,19 +25,19 @@ func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rol
 		return nil, err
 	}
 
-	rpcNodeWsClient, err := rpcnodewsclient.New(conf.RpcNodeWsUrl, conf.AnvilUrl, rpcNodeHttpClient)
+	manager := &Manager{
+		currentAuctionTobTxs:               make(map[string][]string),
+		currentAuctionRoundMyTxs:           make(map[string]map[int][]string),
+		currentAuctionConfirmedTxScanIndex: make(map[string]int),
+		currentAuctionMyTxCount:            make(map[string]uint64),
+		rpcNodeHttpClient:                  rpcNodeHttpClient,
+	}
+
+	rpcNodeWsClient, err := rpcnodewsclient.New("cluster1-1", manager, conf.RpcNodeWsUrl, conf.AnvilUrl, rpcNodeHttpClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to rpc node: %w", err)
 	}
 	fmt.Println("Connected to the WebSocket rpc node!")
-
-	manager := &Manager{
-		myAuctionRoundTxs:                  make(map[string]map[int][]string),
-		currentAuctionConfirmedTxScanIndex: make(map[string]int),
-		myCurrentAuctionTxCount:            make(map[string]uint64),
-		rpcNodeWsClient:                    rpcNodeWsClient,
-		rpcNodeHttpClient:                  rpcNodeHttpClient,
-	}
 
 	lighthouseWsClient, err := lighthousewsclient.New(manager, conf.LighthouseUrl, conf.RpcNodeHttpUrl, bidderAddress, bidderPrivateKey, rollupIds)
 	if err != nil {
@@ -45,6 +46,7 @@ func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rol
 
 	fmt.Println("Connected to the WebSocket lighthouse!")
 
+	manager.rpcNodeWsClient = rpcNodeWsClient
 	manager.lighthouseWsClient = lighthouseWsClient
 	return manager, nil
 }
@@ -54,34 +56,65 @@ func (m *Manager) Start(ctx context.Context) {
 	m.rpcNodeWsClient.Start(ctx)
 }
 
-func (m *Manager) MyAuctionRoundTxs(auctionId string, roundIndex int) []string {
-	return m.myAuctionRoundTxs[auctionId][roundIndex]
+func (m *Manager) CurrentAuctionRoundMyTxs(rollupId string, roundIndex int) ([]string, error) {
+	rounds, ok := m.currentAuctionRoundMyTxs[rollupId]
+	if !ok {
+		return []string{}, nil
+	}
+
+	txs, ok := rounds[roundIndex]
+	if !ok {
+		return nil, fmt.Errorf("roundIndex %d not found for rollupId '%s'", roundIndex, rollupId)
+	}
+
+	return txs, nil
 }
 
-func (m *Manager) CurrentAuctionConfirmedTxScanIndex(auctionId string) int {
-	return m.currentAuctionConfirmedTxScanIndex[auctionId]
+func (m *Manager) CurrentAuctionConfirmedTxScanIndex(rollupId string) int {
+	return m.currentAuctionConfirmedTxScanIndex[rollupId]
 }
 
-func (m *Manager) MyCurrentAuctionTxCount(auctionId string) uint64 {
-	return m.myCurrentAuctionTxCount[auctionId]
+func (m *Manager) CurrentAuctionMyTxCount(rollupId string) uint64 {
+	return m.currentAuctionMyTxCount[rollupId]
 }
 
-func (m *Manager) IncreaseMyCurrentAuctionTxCount(auctionId string, addedTxCount uint64) uint64 {
-	m.myCurrentAuctionTxCount[auctionId] += addedTxCount
-	return m.myCurrentAuctionTxCount[auctionId]
+func (m *Manager) IncreaseCurrentAuctionMyTxCount(rollupId string, addedTxCount uint64) uint64 {
+	m.currentAuctionMyTxCount[rollupId] += addedTxCount
+	return m.currentAuctionMyTxCount[rollupId]
 }
 
-func (m *Manager) ResetMyCurrentAuctionInfo(auctionId string) {
-	m.currentAuctionConfirmedTxScanIndex[auctionId] = 0
-	m.myCurrentAuctionTxCount[auctionId] = 0
+func (m *Manager) ResetCurrentAuctionMyInfo(rollupId string) {
+	m.currentAuctionConfirmedTxScanIndex[rollupId] = 0
+	m.currentAuctionMyTxCount[rollupId] = 0
+	m.currentAuctionRoundMyTxs[rollupId] = make(map[int][]string)
 }
 
-func (m *Manager) SetMyCurrentRoundInfo(auctionId string, roundIndex int, scanIndex int, addedTxs []string) {
-	m.currentAuctionConfirmedTxScanIndex[auctionId] = scanIndex
-	m.myAuctionRoundTxs[auctionId] = make(map[int][]string)
-	m.myAuctionRoundTxs[auctionId][roundIndex] = addedTxs
+func (m *Manager) SetCurrentAuctionRoundMyInfo(rollupId string, roundIndex int, scanIndex int, addedTxs []string) {
+	if _, ok := m.currentAuctionRoundMyTxs[rollupId]; !ok {
+		m.currentAuctionRoundMyTxs[rollupId] = make(map[int][]string)
+	}
+	m.currentAuctionRoundMyTxs[rollupId][roundIndex] = addedTxs
+	m.currentAuctionConfirmedTxScanIndex[rollupId] = scanIndex
 }
 
 func (m *Manager) RpcNodeHttpClient() *ethclient.Client {
 	return m.rpcNodeHttpClient
+}
+
+func (m *Manager) SaveCurrentAuctionTobTxs(rollupId string, tobTxs []string) error {
+	if m.currentAuctionTobTxs[rollupId] != nil {
+		return fmt.Errorf("rollup '%s' is already in currentAuctionTobTxs", rollupId)
+	}
+
+	m.currentAuctionTobTxs[rollupId] = tobTxs
+	return nil
+}
+
+func (m *Manager) CurrentAuctionTobTxs(rollupId string) ([]string, error) {
+	tobTxs, ok := m.currentAuctionTobTxs[rollupId]
+	if !ok {
+		return nil, fmt.Errorf("rollupId '%s' not found in currentAuctionTobTxs", rollupId)
+	}
+
+	return tobTxs, nil
 }
