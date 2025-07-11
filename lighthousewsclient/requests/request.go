@@ -7,11 +7,9 @@ import (
 type RequestType string
 
 const (
-	VerifyBidder          RequestType = "VerifyBidder"
-	SubmitBid             RequestType = "SubmitBid"
-	SubscribeRollups      RequestType = "SubscribeRollups"
-	UnsubscribeRollups    RequestType = "UnsubscribeRollups"
-	UnSubscribeAllRollups RequestType = "UnSubscribeAllRollups"
+	VerifyBidder     RequestType = "VerifyBidder"
+	SubmitBid        RequestType = "SubmitBid"
+	SubscribeRollups RequestType = "SubscribeRollups"
 )
 
 type RequestParams interface {

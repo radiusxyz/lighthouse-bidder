@@ -63,43 +63,14 @@ func (l *LighthouseMessageHandler) handleAllRollupsUnsubscribedResponse(resp *re
 }
 
 func (l *LighthouseMessageHandler) handleBidSubmittedResponse(resp *responses.BidSubmittedResponse) error {
-	logger.Printf("Successfully bid submitted (auctionId: %s, round:%d)", *resp.AuctionId, *resp.Round)
+	logger.Printf("Successfully bid submitted (auctionId: %s)", *resp.AuctionId)
 	return nil
 }
 
-func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundStartedEvent) error {
-	logger.ColorPrintf(logger.BgGreen, "Round started (auctionId=%s, round=%d)", *event.AuctionId, *event.Round)
+func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.AuctionStartedEvent) error {
+	logger.ColorPrintf(logger.BgGreen, "Auction started (auctionId=%s)", *event.AuctionId)
 
-	// Todo: 이미 받은 이벤트인지
-
-	var myPrevRoundTxs []string
-	if *event.Round == 0 {
-		l.bidder.ResetCurrentAuctionMyInfo(*event.RollupId)
-	} else {
-		txs, err := l.bidder.CurrentAuctionRoundMyTxs(*event.RollupId, *event.Round-1)
-		if err != nil {
-			return err
-		}
-		myPrevRoundTxs = txs
-	}
-
-	index := l.bidder.CurrentAuctionConfirmedTxScanIndex(*event.RollupId)
-
-	confirmedTxCount := uint64(0)
-	if index < len(event.ConfirmedTransactions) {
-		for i := index; i < len(event.ConfirmedTransactions); i++ {
-			for _, tx := range myPrevRoundTxs {
-				if tx == event.ConfirmedTransactions[i] {
-					confirmedTxCount++
-					break
-				}
-			}
-		}
-	}
-
-	myCurrentAuctionTxCount := l.bidder.IncreaseCurrentAuctionMyTxCount(*event.RollupId, confirmedTxCount)
-
-	hexTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"), myCurrentAuctionTxCount)
+	tx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"), l.bidder.Nonce())
 	if err != nil {
 		return err
 	}
@@ -107,27 +78,23 @@ func (l *LighthouseMessageHandler) handleRoundStartedEvent(event *events.RoundSt
 	logger.Println("Transaction created")
 
 	req := &requests.SubmitBidRequest{
-		BidderAddress: l.bidderAddress,
-		AuctionId:     *event.AuctionId,
-		Round:         *event.Round,
-		BidPrice:      "1000000000000000000",
-		Transactions:  []string{hexTx},
+		BidderAddress:   l.bidderAddress,
+		AuctionId:       *event.AuctionId,
+		BidPrice:        "1000000000000000000",
+		RawTransactions: [][]byte{tx},
 	}
 	if err = l.SendMessage(requests.SubmitBid, req); err != nil {
 		return err
 	}
 
-	logger.Println("Bid submitted")
+	l.bidder.IncreaseNonce()
 
-	l.bidder.SetCurrentAuctionRoundMyInfo(*event.RollupId, *event.Round, len(event.ConfirmedTransactions), []string{hexTx})
+	logger.Println("Bid submitted")
 	return nil
 }
 
 func (l *LighthouseMessageHandler) handleTobEvent(event *events.TobEvent) error {
-	logger.ColorPrintln(logger.BgGreen, "Received tob. auctionId "+*event.AuctionId)
-	if err := l.bidder.SaveCurrentAuctionTobTxs(*event.RollupId, event.ConfirmedTransactions); err != nil {
-		return err
-	}
+	logger.ColorPrintf(logger.BgGreen, "Received tob. rollupId '%s' auctionId '%s'", *event.RollupId, *event.AuctionId)
 	return nil
 }
 
@@ -169,7 +136,7 @@ func (l *LighthouseMessageHandler) handleResponse(res *responses.ResponseMessage
 	case responses.BidderVerified:
 		payload := new(responses.BidderVerifiedResponse)
 		if err := json.Unmarshal(res.Payload, payload); err != nil {
-			return fmt.Errorf("failed to decode BidderRegisteredResponse: %w", err)
+			return fmt.Errorf("failed to decode BidderVerifiedResponse: %w", err)
 		}
 		return l.handleBidderVerifiedResponse(payload)
 	case responses.RollupsSubscribed:
@@ -203,12 +170,12 @@ func (l *LighthouseMessageHandler) handleResponse(res *responses.ResponseMessage
 
 func (l *LighthouseMessageHandler) handleEvent(event *events.EventMessage) error {
 	switch event.EventType {
-	case events.RoundStarted:
-		payload := new(events.RoundStartedEvent)
+	case events.AuctionStarted:
+		payload := new(events.AuctionStartedEvent)
 		if err := json.Unmarshal(event.Payload, payload); err != nil {
-			return fmt.Errorf("failed to decode RoundStartedEvent: %w", err)
+			return fmt.Errorf("failed to decode AuctionStartedEvent: %w", err)
 		}
-		return l.handleRoundStartedEvent(payload)
+		return l.handleAuctionStartedEvent(payload)
 	case events.Tob:
 		payload := new(events.TobEvent)
 		if err := json.Unmarshal(event.Payload, payload); err != nil {

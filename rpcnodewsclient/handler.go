@@ -4,11 +4,10 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/goccy/go-json"
 	"github.com/gorilla/websocket"
-	common2 "github.com/radiusxyz/lighthouse-bidder/common"
+	"github.com/radiusxyz/lighthouse-bidder/common"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
 	"github.com/radiusxyz/lighthouse-bidder/rpcnodewsclient/events"
 	"math/big"
-	"strconv"
 	"strings"
 )
 
@@ -27,10 +26,10 @@ type RpcNodeMessageHandler struct {
 	anvilClient       *ethclient.Client
 	rpcNodeHttpClient *ethclient.Client
 	lastBlockNumber   uint64
-	bidder            common2.Bidder
+	bidder            common.Bidder
 }
 
-func NewRpcNodeMessageHandler(rollupId string, bidder common2.Bidder, serverConn *websocket.Conn, rpcNodeHttpClient *ethclient.Client, anvilUrl string) (*RpcNodeMessageHandler, error) {
+func NewRpcNodeMessageHandler(rollupId string, bidder common.Bidder, serverConn *websocket.Conn, rpcNodeHttpClient *ethclient.Client, anvilUrl string) (*RpcNodeMessageHandler, error) {
 	anvilClient, err := ethclient.Dial(anvilUrl)
 	if err != nil {
 		return nil, err
@@ -62,36 +61,13 @@ func (r *RpcNodeMessageHandler) HandleEnvelope(envelope []byte) error {
 			logger.ColorPrintln(logger.Yellow, "tx ", i, ": ", tx)
 		}
 
-		tobTxs, err := r.bidder.CurrentAuctionTobTxs(r.rollupId + "_" + strconv.FormatInt(slotTransactions.SlotNumber, 10))
-		if err != nil {
-			return err
-		}
-
-		bobTxs := slotTransactions.RawTransactions[len(tobTxs):]
-		for i, tx := range bobTxs {
-			logger.ColorPrintln(logger.Yellow, "bob ", i, ": ", tx)
-		}
-		//r.bidder.RollupSlotTobTxs()
-		//receivedBlockNumber, err := hexToUint64(msg.Params.Result.Number)
-		//if err != nil {
-		//	return err
-		//}
-
-		//if r.lastBlockNumber+1 != receivedBlockNumber {
-		//	panic("can not process block")
-		//}
-		//fmt.Println("aaaa: ", msg.Params.Result.Number)
-		//blockNumber := new(big.Int)
-		//blockNumber.SetString(strings.TrimPrefix(msg.Params.Result.Number, "0x"), 16)
-		//block, err := r.rpcNodeHttpClient.BlockByNumber(context.Background(), blockNumber)
-		//if err != nil {
-		//	return err
-		//}
-		//for _, tx := range block.Transactions() {
-		//	fmt.Println("ym: ", tx)
-		//}
+		// TODO: Apply on own tool and manage nonce
 	}
 	return nil
+}
+
+func (r *RpcNodeMessageHandler) IsOwnTx() bool {
+	return true
 }
 
 func hexToUint64(hexStr string) (uint64, error) {

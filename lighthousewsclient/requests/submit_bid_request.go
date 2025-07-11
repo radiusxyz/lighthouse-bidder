@@ -5,11 +5,10 @@ import (
 )
 
 type SubmitBidRequest struct {
-	BidderAddress string   `json:"bidderAddress"`
-	AuctionId     string   `json:"auctionId"`
-	Round         int      `json:"round"`
-	BidPrice      string   `json:"bidPrice"`
-	Transactions  []string `json:"transactions"`
+	BidderAddress   string   `json:"bidderAddress"`
+	AuctionId       string   `json:"auctionId"`
+	BidPrice        string   `json:"bidPrice"`
+	RawTransactions [][]byte `json:"rawTransactions"`
 }
 
 func (r *SubmitBidRequest) Marshal() ([]byte, error) {

@@ -7,8 +7,8 @@ import (
 type EventType string
 
 var (
-	RoundStarted EventType = "RoundStarted"
-	Tob          EventType = "Tob"
+	AuctionStarted EventType = "AuctionStarted"
+	Tob            EventType = "Tob"
 )
 
 type EventMessage struct {
