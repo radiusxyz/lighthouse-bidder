@@ -42,6 +42,10 @@ func NewHandler(bidder common2.Bidder, serverConn *websocket.Conn, rpcNodeHttpUr
 	}, nil
 }
 
+func (l *LighthouseMessageHandler) ResetConn(conn *websocket.Conn) {
+	l.serverConn = conn
+}
+
 func (l *LighthouseMessageHandler) handleBidderVerifiedResponse(resp *responses.BidderVerifiedResponse) error {
 	logger.Println("Successfully verified")
 	return nil

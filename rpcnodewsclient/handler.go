@@ -60,14 +60,8 @@ func (r *RpcNodeMessageHandler) HandleEnvelope(envelope []byte) error {
 		for i, tx := range slotTransactions.RawTransactions {
 			logger.ColorPrintln(logger.Yellow, "tx ", i, ": ", tx)
 		}
-
-		// TODO: Apply on own tool and manage nonce
 	}
 	return nil
-}
-
-func (r *RpcNodeMessageHandler) IsOwnTx() bool {
-	return true
 }
 
 func hexToUint64(hexStr string) (uint64, error) {

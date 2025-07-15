@@ -3,10 +3,12 @@ package manager
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/radiusxyz/lighthouse-bidder/config"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient"
 	"github.com/radiusxyz/lighthouse-bidder/rpcnodewsclient"
+	"log"
 )
 
 type Manager struct {
@@ -22,9 +24,14 @@ func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rol
 		return nil, err
 	}
 
+	nonce, err := rpcNodeHttpClient.PendingNonceAt(context.Background(), common.HexToAddress(bidderAddress))
+	if err != nil {
+		log.Fatalf("failed to get nonce: %v", err)
+	}
+
 	manager := &Manager{
 		rpcNodeHttpClient: rpcNodeHttpClient,
-		nonce:             0,
+		nonce:             nonce,
 	}
 
 	rpcNodeWsClient, err := rpcnodewsclient.New("cluster1-1", manager, conf.RpcNodeWsUrl, conf.AnvilUrl, rpcNodeHttpClient)

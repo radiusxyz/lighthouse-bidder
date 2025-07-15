@@ -2,13 +2,10 @@ package lighthousewsclient
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/radiusxyz/lighthouse-bidder/common"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/requests"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
-	"io"
 	"time"
 )
 
@@ -80,18 +77,11 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 }
 
 func (l *LighthouseWsClient) ReadMessage() {
-	defer func() {
-		l.leaveCh <- struct{}{}
-	}()
-
 	for {
 		_, envelope, err := l.conn.ReadMessage()
 		if err != nil {
 			logger.Println("Read error:", err)
-			if errors.Is(err, io.EOF) {
-				fmt.Println("Error eof")
-				l.leaveCh <- struct{}{}
-			}
+			l.leaveCh <- struct{}{}
 			break
 		}
 		l.envelopeCh <- envelope
@@ -104,12 +94,33 @@ func (l *LighthouseWsClient) ManageCh() {
 		case <-l.leaveCh:
 			_ = l.conn.Close()
 			logger.Println("connection to the server has been lost")
+			l.Reconnect()
+
 		case envelope := <-l.envelopeCh:
 			if err := l.handler.HandleEnvelope(envelope); err != nil {
 				logger.ColorPrintf(logger.Red, "Exception filter: %s\n", err.Error())
 			}
 		}
 	}
+}
+
+func (l *LighthouseWsClient) Reconnect() {
+	for {
+		time.Sleep(time.Second * 5)
+		conn, _, err := websocket.DefaultDialer.Dial(l.lighthouseUrl, nil)
+		if err != nil {
+			logger.ColorPrintf(logger.Red, "Dial error: %s", err.Error())
+			continue
+		}
+		l.resetConn(conn)
+		go l.ReadMessage()
+		break
+	}
+}
+
+func (l *LighthouseWsClient) resetConn(conn *websocket.Conn) {
+	l.conn = conn
+	l.handler.ResetConn(conn)
 }
 
 func (l *LighthouseWsClient) Close() error {
