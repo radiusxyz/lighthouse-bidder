@@ -2,10 +2,14 @@ package lighthousewsclient
 
 import (
 	"context"
+	"encoding/base64"
+	common2 "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/websocket"
 	"github.com/radiusxyz/lighthouse-bidder/common"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/requests"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
+	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -13,15 +17,27 @@ type LighthouseWsClient struct {
 	conn             *websocket.Conn
 	rollupIds        []string
 	lighthouseUrl    string
-	bidderAddress    string
+	bidderAddress    common2.Address
 	bidderPrivateKey string
 	leaveCh          chan struct{}
 	envelopeCh       chan []byte
 	handler          *LighthouseMessageHandler
 }
 
-func New(bidder common.Bidder, lighthouseUrl string, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*LighthouseWsClient, error) {
-	conn, _, err := websocket.DefaultDialer.Dial(lighthouseUrl, nil)
+func New(bidder common.Bidder, lighthouseUrl string, rpcNodeHttpUrl string, bidderAddress common2.Address, bidderPrivateKey string, rollupIds []string) (*LighthouseWsClient, error) {
+	timestamp := uint64(time.Now().Unix())
+	signature, err := common.GetSignature(bidderAddress.Hex(), timestamp, bidderPrivateKey)
+	if err != nil {
+		panic(err)
+	}
+
+	headers := http.Header{}
+	headers.Set("Client-Type", "Bidder")
+	headers.Set("Bidder-Address", bidderAddress.Hex())
+	headers.Set("Signature", base64.StdEncoding.EncodeToString(signature))
+	headers.Set("Timestamp", strconv.FormatUint(timestamp, 10))
+
+	conn, _, err := websocket.DefaultDialer.Dial(lighthouseUrl, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -50,28 +66,12 @@ func (l *LighthouseWsClient) Start(ctx context.Context) {
 
 	go l.ReadMessage()
 
-	timestamp := uint64(time.Now().Unix())
-	signature, err := common.GetSignature(l.bidderAddress, timestamp, l.bidderPrivateKey)
-	if err != nil {
-		panic(err)
-	}
-
-	verifyBidderRequest := &requests.VerifyBidderRequest{
-		BidderAddress: l.bidderAddress,
-		Timestamp:     timestamp,
-		Signature:     signature,
-	}
-
-	if err = l.handler.SendMessage(requests.VerifyBidder, verifyBidderRequest); err != nil {
-		logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
-	}
-
 	subscribeRollupsRequest := &requests.SubscribeRollupsRequest{
 		BidderAddress: l.bidderAddress,
 		RollupIds:     l.rollupIds,
 	}
 
-	if err = l.handler.SendMessage(requests.SubscribeRollups, subscribeRollupsRequest); err != nil {
+	if err := l.handler.SendMessage(requests.SubscribeRollups, subscribeRollupsRequest); err != nil {
 		logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
 	}
 }
@@ -107,13 +107,35 @@ func (l *LighthouseWsClient) ManageCh() {
 func (l *LighthouseWsClient) Reconnect() {
 	for {
 		time.Sleep(time.Second * 5)
-		conn, _, err := websocket.DefaultDialer.Dial(l.lighthouseUrl, nil)
+		timestamp := uint64(time.Now().Unix())
+		signature, err := common.GetSignature(l.bidderAddress.Hex(), timestamp, l.bidderPrivateKey)
+		if err != nil {
+			panic(err)
+		}
+
+		headers := http.Header{}
+		headers.Set("Client-Type", "Bidder")
+		headers.Set("Bidder-Address", l.bidderAddress.Hex())
+		headers.Set("Signature", base64.StdEncoding.EncodeToString(signature))
+		headers.Set("Timestamp", strconv.FormatUint(timestamp, 10))
+
+		conn, _, err := websocket.DefaultDialer.Dial(l.lighthouseUrl, headers)
 		if err != nil {
 			logger.ColorPrintf(logger.Red, "Dial error: %s", err.Error())
 			continue
 		}
 		l.resetConn(conn)
 		go l.ReadMessage()
+
+		subscribeRollupsRequest := &requests.SubscribeRollupsRequest{
+			BidderAddress: l.bidderAddress,
+			RollupIds:     l.rollupIds,
+		}
+
+		if err := l.handler.SendMessage(requests.SubscribeRollups, subscribeRollupsRequest); err != nil {
+			logger.ColorPrintf(logger.Red, "Error: %s\n", err.Error())
+		}
+
 		break
 	}
 }

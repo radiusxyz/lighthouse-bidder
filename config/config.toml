@@ -1,5 +1,5 @@
 LighthouseUrl = "ws://34.64.120.174:8080/ws"
 #RpcNodeWsUrl = "ws://34.47.107.69:32922/ws"
-RpcNodeHttpUrl = "http://34.64.139.203:33869"
-RpcNodeWsUrl = "ws://34.64.139.203:33870"
+RpcNodeHttpUrl = "http://34.64.139.203:34636"
+RpcNodeWsUrl = "ws://34.64.139.203:34637"
 AnvilUrl = "http://localhost:8547"

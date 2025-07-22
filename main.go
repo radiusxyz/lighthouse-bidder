@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/radiusxyz/lighthouse-bidder/config"
 	"github.com/radiusxyz/lighthouse-bidder/manager"
 	"strings"
@@ -27,7 +28,7 @@ func main() {
 	rollupIds := strings.Fields(rawRollupIds)
 
 	conf := config.New()
-	m, err := manager.New(conf, bidderAddress, bidderPrivateKey, rollupIds)
+	m, err := manager.New(conf, common.HexToAddress(bidderAddress), bidderPrivateKey, rollupIds)
 	if err != nil {
 		panic(err)
 	}

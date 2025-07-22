@@ -21,13 +21,13 @@ type BaseMessage struct {
 
 type LighthouseMessageHandler struct {
 	serverConn       *websocket.Conn
-	bidderAddress    string
+	bidderAddress    common.Address
 	bidderPrivateKey string
 	txBuilder        *txbuilder.TxBuilder
 	bidder           common2.Bidder
 }
 
-func NewHandler(bidder common2.Bidder, serverConn *websocket.Conn, rpcNodeHttpUrl string, bidderAddress string, bidderPrivateKey string) (*LighthouseMessageHandler, error) {
+func NewHandler(bidder common2.Bidder, serverConn *websocket.Conn, rpcNodeHttpUrl string, bidderAddress common.Address, bidderPrivateKey string) (*LighthouseMessageHandler, error) {
 	txBuilder, err := txbuilder.New(bidder.RpcNodeHttpClient(), rpcNodeHttpUrl)
 	if err != nil {
 		return nil, err
@@ -96,6 +96,20 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 	logger.Println("Bid submitted")
 	return nil
 }
+
+//func (l *LighthouseMessageHandler) createPayload() {
+//	payloads := []Lighthouse.ILighthousePayload{
+//		{
+//			Round:     uint8(3),
+//			Bidder:    bidder1,
+//			Price:     price1,
+//			Nonce:     nonce,
+//			TxHashes:  convertedTxHashes,
+//			Signature: signature,
+//		},
+//	}
+//	return payloads
+//}
 
 func (l *LighthouseMessageHandler) handleTobEvent(event *events.TobEvent) error {
 	logger.ColorPrintf(logger.BgGreen, "Received tob. rollupId '%s' auctionId '%s'", *event.RollupId, *event.AuctionId)

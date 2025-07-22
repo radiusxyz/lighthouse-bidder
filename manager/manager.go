@@ -18,13 +18,13 @@ type Manager struct {
 	nonce              uint64
 }
 
-func New(conf *config.Config, bidderAddress string, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
+func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
 	rpcNodeHttpClient, err := ethclient.Dial(conf.RpcNodeHttpUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	nonce, err := rpcNodeHttpClient.PendingNonceAt(context.Background(), common.HexToAddress(bidderAddress))
+	nonce, err := rpcNodeHttpClient.PendingNonceAt(context.Background(), bidderAddress)
 	if err != nil {
 		log.Fatalf("failed to get nonce: %v", err)
 	}
