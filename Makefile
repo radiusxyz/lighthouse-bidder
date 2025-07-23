@@ -100,3 +100,8 @@ cluster1-1-11: build
 cluster1-2-1: build
 	./bin/bidder -bidder.address=$(CLUSTER1-2-1_ADDRESS) -bidder.private.key=$(CLUSTER1-2-1_PRIVATE_KEY) -rollup.ids=$(CLUSTER1-2-1_ROLLUP_IDS)
 .PHONY: cluster1-2-1
+
+build-contract:
+	solc --abi --bin contracts/ILighthouse.sol -o contracts/build --overwrite
+	abigen --abi contracts/build/ILighthouse.abi --bin contracts/build/ILighthouse.bin --pkg bindings --out contracts/bindings/ILighthouse.go
+.PHONY: build-contract

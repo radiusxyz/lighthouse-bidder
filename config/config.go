@@ -7,10 +7,16 @@ import (
 )
 
 type Config struct {
-	LighthouseUrl  string
-	RpcNodeWsUrl   string
-	RpcNodeHttpUrl string
-	AnvilUrl       string
+	LighthouseChainUrl        *string
+	LighthouseContractAddress *string
+	PrivateKey                *string
+	LighthouseChainId         *uint64
+	GasLimit                  *uint64
+	LighthouseUrl             *string
+	RpcNodeWsUrl              *string
+	RpcNodeHttpUrl            *string
+	AnvilUrl                  *string
+	RollupId                  *string
 }
 
 func New() *Config {

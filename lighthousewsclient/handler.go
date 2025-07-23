@@ -1,9 +1,12 @@
 package lighthousewsclient
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	common2 "github.com/radiusxyz/lighthouse-bidder/common"
@@ -12,6 +15,9 @@ import (
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient/responses"
 	"github.com/radiusxyz/lighthouse-bidder/logger"
 	"github.com/radiusxyz/lighthouse-bidder/txbuilder"
+	"log"
+	"math/big"
+	"strings"
 )
 
 type BaseMessage struct {
@@ -22,7 +28,7 @@ type BaseMessage struct {
 type LighthouseMessageHandler struct {
 	serverConn       *websocket.Conn
 	bidderAddress    common.Address
-	bidderPrivateKey string
+	bidderPrivateKey *ecdsa.PrivateKey
 	txBuilder        *txbuilder.TxBuilder
 	bidder           common2.Bidder
 }
@@ -33,10 +39,16 @@ func NewHandler(bidder common2.Bidder, serverConn *websocket.Conn, rpcNodeHttpUr
 		return nil, err
 	}
 
+	privateKey, err := crypto.HexToECDSA(strings.TrimPrefix(bidderPrivateKey, "0x"))
+	if err != nil {
+		log.Fatalf("Failed to load private key: %v", err)
+
+	}
+
 	return &LighthouseMessageHandler{
 		serverConn:       serverConn,
 		bidderAddress:    bidderAddress,
-		bidderPrivateKey: bidderPrivateKey,
+		bidderPrivateKey: privateKey,
 		txBuilder:        txBuilder,
 		bidder:           bidder,
 	}, nil
@@ -74,27 +86,144 @@ func (l *LighthouseMessageHandler) handleBidSubmittedResponse(resp *responses.Bi
 func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.AuctionStartedEvent) error {
 	logger.ColorPrintf(logger.BgGreen, "Auction started (auctionId=%s)", *event.AuctionId)
 
-	tx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"), l.bidder.Nonce())
+	signedTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"), l.bidder.Nonce())
 	if err != nil {
 		return err
 	}
 
+	rawTx, err := signedTx.MarshalBinary()
+	if err != nil {
+		log.Fatalf("failed to encode tx: %v", err)
+	}
+
 	logger.Println("Transaction created")
+
+	txHashes := ConvertToBytes32Array([]common.Hash{
+		signedTx.Hash(),
+	})
+
+	rawTypeHash := crypto.Keccak256([]byte("SubmitBid(uint256 bidPrice,uint256 nonce,bytes32 bidTxdata)"))
+	nonce := big.NewInt(1)
+
+	var typeHashForpacking [32]byte
+	if len(rawTypeHash) != 32 {
+		log.Fatalf("Invalid type hash length: %d", len(rawTypeHash))
+	}
+	copy(typeHashForpacking[:], rawTypeHash)
+
+	var txHashesArray []common.Hash
+	for _, txHash := range txHashesArray {
+
+		txHashesArray = append(txHashesArray, txHash)
+	}
+
+	packedBytes := make([]byte, 0, len(txHashesArray)*common.HashLength)
+	for _, txHash := range txHashesArray {
+		packedBytes = append(packedBytes, txHash.Bytes()...)
+	}
+
+	finalBidTxdata := crypto.Keccak256Hash(packedBytes)
+	fmt.Println("Bid Txdata Hash:", finalBidTxdata.Hex())
+
+	bytes32Ty, err := abi.NewType("bytes32", "", nil)
+	if err != nil {
+		log.Fatalf("Failed to create bytes32 type: %v", err)
+
+	}
+	uint256Ty, err := abi.NewType("uint256", "", nil)
+	if err != nil {
+		log.Fatalf("Failed to create uint256 type: %v", err)
+	}
+	addressTy, err := abi.NewType("address", "", nil)
+	if err != nil {
+		log.Fatalf("Failed to create address type: %v", err)
+	}
+
+	arguments := abi.Arguments{
+		{Type: bytes32Ty}, // typeHash
+		{Type: uint256Ty}, // price1
+		{Type: uint256Ty}, // nonce
+		{Type: bytes32Ty}, // bidTxdata
+
+	}
+
+	var bidTxdataForPacking [32]byte = finalBidTxdata
+	bidAmount := big.NewInt(10000000000)
+
+	packed, err := arguments.Pack(
+		typeHashForpacking,
+		bidAmount,
+		nonce,
+		bidTxdataForPacking,
+	)
+
+	if err != nil {
+		log.Fatalf("Failed to pack arguments: %v", err)
+	}
+
+	structHash := crypto.Keccak256Hash(packed)
+	fmt.Println("OffChain Struct Hash:", structHash)
+
+	domainTypeHash := crypto.Keccak256Hash([]byte("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"))
+	nameHash := crypto.Keccak256Hash([]byte("Lighthouse"))
+	versionHash := crypto.Keccak256Hash([]byte("1"))
+
+	// Define the domain separator
+	domainPacked, err := abi.Arguments{
+		{Type: bytes32Ty}, // typehash
+		{Type: bytes32Ty}, // name hash
+		{Type: bytes32Ty}, // version hash
+		{Type: uint256Ty}, // chainId
+		{Type: addressTy}, // verifying contract
+	}.Pack(
+		domainTypeHash,
+		nameHash,
+		versionHash,
+		big.NewInt(int64(*l.bidder.Config().LighthouseChainId)),
+		common.HexToAddress(*l.bidder.Config().LighthouseContractAddress),
+	)
+	if err != nil {
+		log.Fatalf("Failed to pack domain arguments: %v", err)
+	}
+
+	domainSeparator := crypto.Keccak256Hash(domainPacked)
+
+	eip712Prefix := []byte("\x19\x01")
+	digest := crypto.Keccak256Hash(
+		append(eip712Prefix, append(domainSeparator.Bytes(), structHash.Bytes()...)...),
+	)
+
+	signature, err := crypto.Sign(digest.Bytes(), l.bidderPrivateKey)
+	if err != nil {
+		log.Fatalf("Failed to sign EIP-712 payload: %v", err)
+	}
 
 	req := &requests.SubmitBidRequest{
 		BidderAddress:   l.bidderAddress,
 		AuctionId:       *event.AuctionId,
-		BidPrice:        "1000000000000000000",
-		RawTransactions: [][]byte{tx},
+		BidAmount:       bidAmount,
+		MetaTxNonce:     l.bidder.MetaTxNonce(),
+		RawTransactions: [][]byte{rawTx},
+		TxHashes:        txHashes,
+		Signature:       signature,
 	}
 	if err = l.SendMessage(requests.SubmitBid, req); err != nil {
 		return err
 	}
 
 	l.bidder.IncreaseNonce()
+	l.bidder.IncreaseMetaTxNonce()
 
 	logger.Println("Bid submitted")
 	return nil
+}
+
+func ConvertToBytes32Array(hashes []common.Hash) [][32]byte {
+	result := make([][32]byte, len(hashes))
+	for i, h := range hashes {
+		result[i] = h
+	}
+	return result
 }
 
 //func (l *LighthouseMessageHandler) createPayload() {
