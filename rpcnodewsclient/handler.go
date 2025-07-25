@@ -1,6 +1,7 @@
 package rpcnodewsclient
 
 import (
+	"encoding/hex"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/goccy/go-json"
 	"github.com/gorilla/websocket"
@@ -56,9 +57,9 @@ func (r *RpcNodeMessageHandler) HandleEnvelope(envelope []byte) error {
 			return err
 		}
 
-		logger.ColorPrintln(logger.Yellow, "SlotNumber: ", slotTransactions.SlotNumber)
+		logger.ColorPrintf(logger.BrightBlue, "SlotNumber(%d) TxCount(%d)", slotTransactions.SlotNumber, len(slotTransactions.RawTransactions))
 		for i, tx := range slotTransactions.RawTransactions {
-			logger.ColorPrintln(logger.Yellow, "tx ", i, ": ", tx)
+			logger.ColorPrintln(logger.BrightBlue, i, ": ", hex.EncodeToString(tx))
 		}
 	}
 	return nil

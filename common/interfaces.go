@@ -13,4 +13,5 @@ type Bidder interface {
 	MetaTxNonce() *big.Int
 	IncreaseMetaTxNonce()
 	Config() *config.Config
+	PendingNonceAt() uint64
 }

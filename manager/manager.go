@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/radiusxyz/lighthouse-bidder/config"
 	"github.com/radiusxyz/lighthouse-bidder/lighthousewsclient"
+	"github.com/radiusxyz/lighthouse-bidder/logger"
 	"github.com/radiusxyz/lighthouse-bidder/rpcnodewsclient"
 	"log"
 	"math/big"
@@ -19,6 +20,7 @@ type Manager struct {
 	nonce              uint64
 	metaTxNonce        *big.Int
 	conf               *config.Config
+	bidderAddress      common.Address
 }
 
 func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
@@ -31,7 +33,7 @@ func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey str
 	if err != nil {
 		log.Fatalf("failed to get nonce: %v", err)
 	}
-
+	logger.ColorPrintf(logger.BrightGreen, "NONCE: %d", nonce)
 	contractClient, err := NewContractClient(conf)
 	if err != nil {
 		panic("failed to create contract client" + err.Error())
@@ -47,6 +49,7 @@ func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey str
 		nonce:             nonce,
 		metaTxNonce:       metaTxNonce,
 		conf:              conf,
+		bidderAddress:     bidderAddress,
 	}
 
 	rpcNodeWsClient, err := rpcnodewsclient.New(*conf.RollupId, manager, *conf.RpcNodeWsUrl, *conf.AnvilUrl, rpcNodeHttpClient)
@@ -94,4 +97,12 @@ func (m *Manager) MetaTxNonce() *big.Int {
 
 func (m *Manager) IncreaseMetaTxNonce() {
 	m.metaTxNonce.Add(m.metaTxNonce, big.NewInt(1))
+}
+
+func (m *Manager) PendingNonceAt() uint64 {
+	nonce, err := m.rpcNodeHttpClient.PendingNonceAt(context.Background(), m.bidderAddress)
+	if err != nil {
+		log.Fatalf("failed to get nonce: %v", err)
+	}
+	return nonce
 }

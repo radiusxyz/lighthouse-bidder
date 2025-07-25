@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -17,7 +18,9 @@ import (
 	"github.com/radiusxyz/lighthouse-bidder/txbuilder"
 	"log"
 	"math/big"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 type BaseMessage struct {
@@ -86,7 +89,27 @@ func (l *LighthouseMessageHandler) handleBidSubmittedResponse(resp *responses.Bi
 func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.AuctionStartedEvent) error {
 	logger.ColorPrintf(logger.BgGreen, "Auction started (auctionId=%s)", *event.AuctionId)
 
-	signedTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, common.HexToAddress("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"), l.bidder.Nonce())
+	privateKey, err := crypto.GenerateKey()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 개인키를 []byte로 변환
+	privateKeyBytes := crypto.FromECDSA(privateKey)
+	// 16진수 문자열로 변환하여 출력 (절대로 외부에 노출하면 안 됨)
+	fmt.Printf("개인키 (Private Key): %s\n", hexutil.Encode(privateKeyBytes)[2:])
+
+	// 2. 개인키로부터 공개키를 도출
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	}
+
+	// 3. 공개키로부터 주소를 도출
+	address := crypto.PubkeyToAddress(*publicKeyECDSA)
+
+	signedTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, address, l.bidder.PendingNonceAt())
 	if err != nil {
 		return err
 	}
@@ -148,7 +171,10 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 	}
 
 	var bidTxdataForPacking [32]byte = finalBidTxdata
-	bidAmount := big.NewInt(10000000000)
+
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
+	bidAmount := big.NewInt(int64(10000000000 + r.Intn(100)))
 
 	packed, err := arguments.Pack(
 		typeHashForpacking,
