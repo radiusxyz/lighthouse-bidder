@@ -138,7 +138,6 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 	}
 
 	finalBidTxdata := crypto.Keccak256Hash(packedBytes)
-	fmt.Println("Bid Txdata Hash:", finalBidTxdata.Hex())
 
 	bytes32Ty, err := abi.NewType("bytes32", "", nil)
 	if err != nil {

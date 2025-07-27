@@ -57,7 +57,7 @@ func (r *RpcNodeMessageHandler) HandleEnvelope(envelope []byte) error {
 			return err
 		}
 
-		logger.ColorPrintf(logger.BrightBlue, "Received OrderFlow gSlotNumber(%d) TxCount(%d)", slotTransactions.SlotNumber, len(slotTransactions.RawTransactions))
+		logger.ColorPrintf(logger.BrightBlue, "Received OrderFlow SlotNumber(%d) TxCount(%d)", slotTransactions.SlotNumber, len(slotTransactions.RawTransactions))
 		for i, tx := range slotTransactions.RawTransactions {
 			logger.ColorPrintln(logger.BrightBlue, i, ": ", hex.EncodeToString(tx))
 		}

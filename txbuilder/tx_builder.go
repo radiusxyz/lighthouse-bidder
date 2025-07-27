@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/radiusxyz/lighthouse-bidder/logger"
 	"log"
 	"math/big"
 )
@@ -30,7 +29,6 @@ func (t *TxBuilder) GetSignedTransaction(privateKey *ecdsa.PrivateKey, toAddress
 	value := big.NewInt(int64(10000000000000000 + nonce))
 	gasLimit := uint64(21000 + nonce)
 	gasPrice, err := t.rpcNodeHttpClient.SuggestGasPrice(context.Background())
-	logger.ColorPrintln(logger.BgYellow, "gasPrice: ", gasPrice)
 	if err != nil {
 		log.Fatalf("failed to suggest gas price: %v", err)
 	}
