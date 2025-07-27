@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -94,19 +93,12 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 		log.Fatal(err)
 	}
 
-	// 개인키를 []byte로 변환
-	privateKeyBytes := crypto.FromECDSA(privateKey)
-	// 16진수 문자열로 변환하여 출력 (절대로 외부에 노출하면 안 됨)
-	fmt.Printf("개인키 (Private Key): %s\n", hexutil.Encode(privateKeyBytes)[2:])
-
-	// 2. 개인키로부터 공개키를 도출
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
 		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
 	}
 
-	// 3. 공개키로부터 주소를 도출
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 
 	signedTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, address, l.bidder.PendingNonceAt())
@@ -188,7 +180,6 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 	}
 
 	structHash := crypto.Keccak256Hash(packed)
-	fmt.Println("OffChain Struct Hash:", structHash)
 
 	domainTypeHash := crypto.Keccak256Hash([]byte("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"))
 	nameHash := crypto.Keccak256Hash([]byte("Lighthouse"))
