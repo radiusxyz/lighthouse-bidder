@@ -61,6 +61,7 @@ func (r *RpcNodeMessageHandler) HandleEnvelope(envelope []byte) error {
 		for i, tx := range slotTransactions.RawTransactions {
 			logger.ColorPrintln(logger.BrightBlue, i, ": ", hex.EncodeToString(tx))
 		}
+		r.bidder.SearchMev()
 	}
 	return nil
 }

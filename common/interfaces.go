@@ -14,4 +14,6 @@ type Bidder interface {
 	IncreaseMetaTxNonce()
 	Config() *config.Config
 	PendingNonceAt() uint64
+	SearchMev()
+	IsMevCatching() bool
 }

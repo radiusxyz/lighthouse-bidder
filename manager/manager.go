@@ -11,6 +11,8 @@ import (
 	"github.com/radiusxyz/lighthouse-bidder/rpcnodewsclient"
 	"log"
 	"math/big"
+	"sync"
+	"time"
 )
 
 type Manager struct {
@@ -21,6 +23,8 @@ type Manager struct {
 	metaTxNonce        *big.Int
 	conf               *config.Config
 	bidderAddress      common.Address
+	isMevCatching      bool
+	isMevCatchingMutex sync.RWMutex
 }
 
 func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
@@ -50,6 +54,7 @@ func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey str
 		metaTxNonce:       metaTxNonce,
 		conf:              conf,
 		bidderAddress:     bidderAddress,
+		isMevCatching:     false,
 	}
 
 	rpcNodeWsClient, err := rpcnodewsclient.New(*conf.RollupId, manager, *conf.RpcNodeWsUrl, *conf.AnvilUrl, rpcNodeHttpClient)
@@ -105,4 +110,20 @@ func (m *Manager) PendingNonceAt() uint64 {
 		log.Fatalf("failed to get nonce: %v", err)
 	}
 	return nonce
+}
+
+func (m *Manager) SearchMev() {
+	m.isMevCatchingMutex.Lock()
+	defer m.isMevCatchingMutex.Unlock()
+
+	time.Sleep(230 * time.Millisecond)
+	m.isMevCatching = true
+	logger.ColorPrintln(logger.BrightYellow, "Catch the MEV case")
+}
+
+func (m *Manager) IsMevCatching() bool {
+	m.isMevCatchingMutex.RLock()
+	defer m.isMevCatchingMutex.RUnlock()
+
+	return m.isMevCatching
 }

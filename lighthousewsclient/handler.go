@@ -101,6 +101,8 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 
+	l.bidder.IsMevCatching()
+
 	signedTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, address, l.bidder.PendingNonceAt())
 	if err != nil {
 		return err
