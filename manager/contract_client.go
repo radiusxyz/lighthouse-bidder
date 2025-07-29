@@ -83,7 +83,7 @@ func (c *ContractClient) TransactOpts() *bind.TransactOpts {
 func (c *ContractClient) GetNonce(bidderAddress common2.Address) (*big.Int, error) {
 	callOpts := &bind.CallOpts{
 		Context: context.Background(),
-		Pending: false,
+		Pending: true,
 	}
 
 	nonce, err := c.contract.GetNonce(callOpts, bidderAddress)

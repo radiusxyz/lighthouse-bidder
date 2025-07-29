@@ -9,11 +9,12 @@ import (
 type Bidder interface {
 	RpcNodeHttpClient() *ethclient.Client
 	Nonce() uint64
-	IncreaseNonce()
 	MetaTxNonce() *big.Int
-	IncreaseMetaTxNonce()
+	IncreaseNonce()
 	Config() *config.Config
 	PendingNonceAt() uint64
 	SearchMev()
-	IsMevCatching() bool
+	WaitMevCatching()
+	MetaTxNonce2() *big.Int
+	UpdateMetaTxNonce(flag bool)
 }

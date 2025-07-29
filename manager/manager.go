@@ -12,19 +12,18 @@ import (
 	"log"
 	"math/big"
 	"sync"
-	"time"
 )
 
 type Manager struct {
-	lighthouseWsClient *lighthousewsclient.LighthouseWsClient
-	rpcNodeWsClient    *rpcnodewsclient.RpcNodeWsClient
-	rpcNodeHttpClient  *ethclient.Client
-	nonce              uint64
-	metaTxNonce        *big.Int
-	conf               *config.Config
-	bidderAddress      common.Address
-	isMevCatching      bool
-	isMevCatchingMutex sync.RWMutex
+	lighthouseWsClient    *lighthousewsclient.LighthouseWsClient
+	rpcNodeWsClient       *rpcnodewsclient.RpcNodeWsClient
+	rpcNodeHttpClient     *ethclient.Client
+	nonce                 uint64
+	metaTxNonce           *big.Int
+	conf                  *config.Config
+	bidderAddress         common.Address
+	isMevCatchingMutex    sync.RWMutex
+	auctionContractClient *ContractClient
 }
 
 func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
@@ -38,6 +37,7 @@ func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey str
 		log.Fatalf("failed to get nonce: %v", err)
 	}
 	logger.ColorPrintf(logger.BrightGreen, "NONCE: %d", nonce)
+
 	contractClient, err := NewContractClient(conf)
 	if err != nil {
 		panic("failed to create contract client" + err.Error())
@@ -47,14 +47,14 @@ func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey str
 	if err != nil {
 		panic("failed to get nonce: " + err.Error())
 	}
-
+	logger.ColorPrintf(logger.BgYellow, "nonono: (%d)", metaTxNonce)
 	manager := &Manager{
-		rpcNodeHttpClient: rpcNodeHttpClient,
-		nonce:             nonce,
-		metaTxNonce:       metaTxNonce,
-		conf:              conf,
-		bidderAddress:     bidderAddress,
-		isMevCatching:     false,
+		rpcNodeHttpClient:     rpcNodeHttpClient,
+		nonce:                 nonce,
+		metaTxNonce:           metaTxNonce,
+		conf:                  conf,
+		bidderAddress:         bidderAddress,
+		auctionContractClient: contractClient,
 	}
 
 	rpcNodeWsClient, err := rpcnodewsclient.New(*conf.RollupId, manager, *conf.RpcNodeWsUrl, *conf.AnvilUrl, rpcNodeHttpClient)
@@ -100,8 +100,12 @@ func (m *Manager) MetaTxNonce() *big.Int {
 	return m.metaTxNonce
 }
 
-func (m *Manager) IncreaseMetaTxNonce() {
-	m.metaTxNonce.Add(m.metaTxNonce, big.NewInt(1))
+func (m *Manager) UpdateMetaTxNonce(succeed bool) {
+	if succeed {
+		m.metaTxNonce.Add(m.metaTxNonce, big.NewInt(1))
+	} else {
+		m.metaTxNonce = m.MetaTxNonce2()
+	}
 }
 
 func (m *Manager) PendingNonceAt() uint64 {
@@ -116,14 +120,19 @@ func (m *Manager) SearchMev() {
 	m.isMevCatchingMutex.Lock()
 	defer m.isMevCatchingMutex.Unlock()
 
-	time.Sleep(230 * time.Millisecond)
-	m.isMevCatching = true
+	//time.Sleep(1 * time.Millisecond)
 	logger.ColorPrintln(logger.BrightYellow, "Catch the MEV case")
 }
 
-func (m *Manager) IsMevCatching() bool {
+func (m *Manager) WaitMevCatching() {
 	m.isMevCatchingMutex.RLock()
 	defer m.isMevCatchingMutex.RUnlock()
+}
 
-	return m.isMevCatching
+func (m *Manager) MetaTxNonce2() *big.Int {
+	nonce, err := m.auctionContractClient.GetNonce(m.bidderAddress)
+	if err != nil {
+		log.Fatalf("failed to get nonce: %v", err)
+	}
+	return nonce
 }

@@ -101,7 +101,7 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 
-	l.bidder.IsMevCatching()
+	l.bidder.WaitMevCatching()
 
 	signedTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, address, l.bidder.PendingNonceAt())
 	if err != nil {
@@ -120,19 +120,18 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 	})
 
 	rawTypeHash := crypto.Keccak256([]byte("SubmitBid(uint256 bidPrice,uint256 nonce,bytes32 bidTxdata)"))
-	nonce := big.NewInt(1)
-
-	var typeHashForpacking [32]byte
 	if len(rawTypeHash) != 32 {
 		log.Fatalf("Invalid type hash length: %d", len(rawTypeHash))
 	}
+
+	nonce := l.bidder.MetaTxNonce()
+	logger.ColorPrintf(logger.BgCyan, "nnnnnnnnnnym(%d)", nonce)
+	logger.ColorPrintf(logger.BgCyan, "222222222222(%d)", l.bidder.MetaTxNonce2())
+
+	var typeHashForpacking [32]byte
 	copy(typeHashForpacking[:], rawTypeHash)
 
-	var txHashesArray []common.Hash
-	for _, txHash := range txHashesArray {
-
-		txHashesArray = append(txHashesArray, txHash)
-	}
+	txHashesArray := []common.Hash{signedTx.Hash()}
 
 	packedBytes := make([]byte, 0, len(txHashesArray)*common.HashLength)
 	for _, txHash := range txHashesArray {
@@ -220,17 +219,18 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 		BidderAddress:   l.bidderAddress,
 		AuctionId:       *event.AuctionId,
 		BidAmount:       bidAmount,
-		MetaTxNonce:     l.bidder.MetaTxNonce(),
+		MetaTxNonce:     nonce,
 		RawTransactions: [][]byte{rawTx},
 		TxHashes:        txHashes,
 		Signature:       signature,
 	}
 	if err = l.SendMessage(requests.SubmitBid, req); err != nil {
+		logger.ColorPrintf(logger.BgCyan, "Failed to send submit bid request: %v", err)
 		return err
 	}
 
 	l.bidder.IncreaseNonce()
-	l.bidder.IncreaseMetaTxNonce()
+	l.bidder.UpdateMetaTxNonce(true)
 
 	logger.Println("Bid submitted")
 	return nil
@@ -266,6 +266,7 @@ func (l *LighthouseMessageHandler) handleTobEvent(event *events.TobEvent) error 
 func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
 	base := new(BaseMessage)
 	if err := json.Unmarshal(envelope, base); err != nil {
+		l.bidder.UpdateMetaTxNonce(false)
 		return err
 	}
 
