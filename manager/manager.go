@@ -12,6 +12,7 @@ import (
 	"log"
 	"math/big"
 	"sync"
+	"time"
 )
 
 type Manager struct {
@@ -120,7 +121,7 @@ func (m *Manager) SearchMev() {
 	m.isMevCatchingMutex.Lock()
 	defer m.isMevCatchingMutex.Unlock()
 
-	//time.Sleep(1 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	logger.ColorPrintln(logger.BrightYellow, "Catch the MEV case")
 }
 

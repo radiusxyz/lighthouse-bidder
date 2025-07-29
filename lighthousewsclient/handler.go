@@ -125,8 +125,8 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 	}
 
 	nonce := l.bidder.MetaTxNonce()
-	logger.ColorPrintf(logger.BgCyan, "nnnnnnnnnnym(%d)", nonce)
-	logger.ColorPrintf(logger.BgCyan, "222222222222(%d)", l.bidder.MetaTxNonce2())
+	//logger.ColorPrintf(logger.BgCyan, "fastCalculatingNonce(%d)", nonce)
+	//logger.ColorPrintf(logger.BgCyan, "(%d)", l.bidder.MetaTxNonce2())
 
 	var typeHashForpacking [32]byte
 	copy(typeHashForpacking[:], rawTypeHash)
@@ -266,7 +266,6 @@ func (l *LighthouseMessageHandler) handleTobEvent(event *events.TobEvent) error 
 func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
 	base := new(BaseMessage)
 	if err := json.Unmarshal(envelope, base); err != nil {
-		l.bidder.UpdateMetaTxNonce(false)
 		return err
 	}
 
@@ -295,6 +294,7 @@ func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
 
 func (l *LighthouseMessageHandler) handleResponse(res *responses.ResponseMessage) error {
 	if res.Error != nil {
+		l.bidder.UpdateMetaTxNonce(false)
 		return fmt.Errorf("[ErrorResponse] id=%s type=%s msg=%s", res.Id, res.ResponseType, res.Error.Message)
 	}
 
