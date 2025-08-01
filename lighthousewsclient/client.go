@@ -98,7 +98,7 @@ func (l *LighthouseWsClient) ManageCh() {
 
 		case envelope := <-l.envelopeCh:
 			if err := l.handler.HandleEnvelope(envelope); err != nil {
-				logger.ColorPrintf(logger.Red, "Exception filter: %s\n", err.Error())
+				logger.ColorPrintf(logger.Yellow, "Exception filter: %s\n", err.Error())
 			}
 		}
 	}

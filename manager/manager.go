@@ -20,7 +20,7 @@ type Manager struct {
 	rpcNodeWsClient       *rpcnodewsclient.RpcNodeWsClient
 	rpcNodeHttpClient     *ethclient.Client
 	nonce                 uint64
-	metaTxNonce           *big.Int
+	auctionNonce          *big.Int
 	conf                  *config.Config
 	bidderAddress         common.Address
 	isMevCatchingMutex    sync.RWMutex
@@ -37,22 +37,20 @@ func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey str
 	if err != nil {
 		log.Fatalf("failed to get nonce: %v", err)
 	}
-	logger.ColorPrintf(logger.BrightGreen, "NONCE: %d", nonce)
 
 	contractClient, err := NewContractClient(conf)
 	if err != nil {
 		panic("failed to create contract client" + err.Error())
 	}
 
-	metaTxNonce, err := contractClient.GetNonce(bidderAddress)
+	auctionNonce, err := contractClient.GetNonce(bidderAddress)
 	if err != nil {
 		panic("failed to get nonce: " + err.Error())
 	}
-	logger.ColorPrintf(logger.BgYellow, "nonono: (%d)", metaTxNonce)
 	manager := &Manager{
 		rpcNodeHttpClient:     rpcNodeHttpClient,
 		nonce:                 nonce,
-		metaTxNonce:           metaTxNonce,
+		auctionNonce:          auctionNonce,
 		conf:                  conf,
 		bidderAddress:         bidderAddress,
 		auctionContractClient: contractClient,
@@ -97,15 +95,15 @@ func (m *Manager) IncreaseNonce() {
 	m.nonce++
 }
 
-func (m *Manager) MetaTxNonce() *big.Int {
-	return m.metaTxNonce
+func (m *Manager) AuctionNonce() *big.Int {
+	return m.auctionNonce
 }
 
-func (m *Manager) UpdateMetaTxNonce(succeed bool) {
+func (m *Manager) UpdateAuctionNonce(succeed bool) {
 	if succeed {
-		m.metaTxNonce.Add(m.metaTxNonce, big.NewInt(1))
+		m.auctionNonce.Add(m.auctionNonce, big.NewInt(1))
 	} else {
-		m.metaTxNonce = m.MetaTxNonce2()
+		m.auctionNonce = m.FetchAuctionNonce()
 	}
 }
 
@@ -130,7 +128,7 @@ func (m *Manager) WaitMevCatching() {
 	defer m.isMevCatchingMutex.RUnlock()
 }
 
-func (m *Manager) MetaTxNonce2() *big.Int {
+func (m *Manager) FetchAuctionNonce() *big.Int {
 	nonce, err := m.auctionContractClient.GetNonce(m.bidderAddress)
 	if err != nil {
 		log.Fatalf("failed to get nonce: %v", err)

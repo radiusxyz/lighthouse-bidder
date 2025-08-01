@@ -230,7 +230,7 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 	}
 
 	l.bidder.IncreaseNonce()
-	l.bidder.UpdateMetaTxNonce(true)
+	l.bidder.UpdateAuctionNonce(true)
 
 	logger.Println("Bid submitted")
 	return nil
@@ -294,7 +294,7 @@ func (l *LighthouseMessageHandler) HandleEnvelope(envelope []byte) error {
 
 func (l *LighthouseMessageHandler) handleResponse(res *responses.ResponseMessage) error {
 	if res.Error != nil {
-		l.bidder.UpdateMetaTxNonce(false)
+		l.bidder.UpdateAuctionNonce(false)
 		return fmt.Errorf("[ErrorResponse] id=%s type=%s msg=%s", res.Id, res.ResponseType, res.Error.Message)
 	}
 
