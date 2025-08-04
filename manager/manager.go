@@ -25,6 +25,7 @@ type Manager struct {
 	bidderAddress         common.Address
 	isMevCatchingMutex    sync.RWMutex
 	auctionContractClient *ContractClient
+	mu                    sync.RWMutex
 }
 
 func New(conf *config.Config, bidderAddress common.Address, bidderPrivateKey string, rollupIds []string) (*Manager, error) {
@@ -96,10 +97,16 @@ func (m *Manager) IncreaseNonce() {
 }
 
 func (m *Manager) AuctionNonce() *big.Int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	return m.auctionNonce
 }
 
 func (m *Manager) UpdateAuctionNonce(succeed bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if succeed {
 		m.auctionNonce.Add(m.auctionNonce, big.NewInt(1))
 	} else {

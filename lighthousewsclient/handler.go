@@ -124,7 +124,6 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 		log.Fatalf("Invalid type hash length: %d", len(rawTypeHash))
 	}
 
-	nonce := l.bidder.MetaTxNonce()
 	//logger.ColorPrintf(logger.BgCyan, "fastCalculatingNonce(%d)", nonce)
 	//logger.ColorPrintf(logger.BgCyan, "(%d)", l.bidder.MetaTxNonce2())
 
@@ -171,7 +170,7 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 	packed, err := arguments.Pack(
 		typeHashForpacking,
 		bidAmount,
-		nonce,
+		l.bidder.AuctionNonce(),
 		bidTxdataForPacking,
 	)
 
@@ -219,7 +218,7 @@ func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.Aucti
 		BidderAddress:   l.bidderAddress,
 		AuctionId:       *event.AuctionId,
 		BidAmount:       bidAmount,
-		MetaTxNonce:     nonce,
+		AuctionNonce:    l.bidder.AuctionNonce(),
 		RawTransactions: [][]byte{rawTx},
 		TxHashes:        txHashes,
 		Signature:       signature,

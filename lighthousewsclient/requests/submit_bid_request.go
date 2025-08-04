@@ -10,7 +10,7 @@ type SubmitBidRequest struct {
 	BidderAddress   common.Address `json:"bidderAddress"`
 	AuctionId       string         `json:"auctionId"`
 	BidAmount       *big.Int       `json:"bidAmount"`
-	MetaTxNonce     *big.Int       `json:"metaTxNonce"`
+	AuctionNonce    *big.Int       `json:"auctionNonce"`
 	RawTransactions [][]byte       `json:"rawTransactions"`
 	TxHashes        [][32]byte     `json:"txHashes"`
 	Signature       []byte         `json:"signature"`
