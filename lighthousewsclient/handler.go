@@ -88,22 +88,9 @@ func (l *LighthouseMessageHandler) handleBidSubmittedResponse(resp *responses.Bi
 func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.AuctionStartedEvent) error {
 	logger.ColorPrintf(logger.BgGreen, "Auction started (auctionId=%s)", *event.AuctionId)
 
-	privateKey, err := crypto.GenerateKey()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-	}
-
-	address := crypto.PubkeyToAddress(*publicKeyECDSA)
-
 	l.bidder.WaitMevCatching()
 
-	signedTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, address, l.bidder.PendingNonceAt())
+	signedTx, err := l.txBuilder.GetSignedTransaction(l.bidderPrivateKey, l.bidder.PendingNonceAt())
 	if err != nil {
 		return err
 	}

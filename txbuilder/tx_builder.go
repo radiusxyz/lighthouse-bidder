@@ -3,8 +3,8 @@ package txbuilder
 import (
 	"context"
 	"crypto/ecdsa"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"log"
 	"math/big"
@@ -25,9 +25,22 @@ func New(rpcNodeHttpClient *ethclient.Client, url string) (*TxBuilder, error) {
 	}, nil
 }
 
-func (t *TxBuilder) GetSignedTransaction(privateKey *ecdsa.PrivateKey, toAddress common.Address, nonce uint64) (*types.Transaction, error) {
+func (t *TxBuilder) GetSignedTransaction(privateKey *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
+	toPrivateKey, err := crypto.GenerateKey()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	publicKey := toPrivateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	}
+
+	toAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+
 	value := big.NewInt(int64(10000000000000000 + nonce))
-	gasLimit := uint64(21000 + nonce)
+	gasLimit := 21000 + nonce
 	gasPrice, err := t.rpcNodeHttpClient.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Fatalf("failed to suggest gas price: %v", err)

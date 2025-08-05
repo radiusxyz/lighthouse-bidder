@@ -1,10 +1,10 @@
-LighthouseChainUrl = "http://34.64.43.55:8545"
-LighthouseContractAddress = "0x71C95911E9a5D330f4D621842EC243EE1343292e"
-LighthouseChainId = 31337
+LighthouseChainUrl = "http://34.30.14.244:11111"
+LighthouseContractAddress = "0x4722a5354567Ad3E1a8a4d497deFd049CC8546F7"
+LighthouseChainId = 10101
 PrivateKey = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
 GasLimit = 3000000
 LighthouseUrl = "ws://34.64.43.55:8080/ws"
-RpcNodeHttpUrl = "http://34.64.139.203:35896"
-RpcNodeWsUrl = "ws://34.64.139.203:35897"
+RpcNodeHttpUrl = "http://34.64.139.203:36003"
+RpcNodeWsUrl = "ws://34.64.139.203:36004"
 AnvilUrl = "http://localhost:8547"
 RollupId = "cluster1-1"
