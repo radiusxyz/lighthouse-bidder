@@ -1,4 +1,4 @@
-LighthouseChainUrl = "http://34.30.14.244:11111"
+LighthouseChainUrl = "http://34.22.91.30:32794"
 LighthouseContractAddress = "0x4722a5354567Ad3E1a8a4d497deFd049CC8546F7"
 LighthouseChainId = 10101
 PrivateKey = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
