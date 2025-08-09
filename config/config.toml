@@ -1,5 +1,5 @@
 LighthouseChainUrl = "http://34.47.72.207:32794"
-LighthouseContractAddress = "0x2C5c6Eb6639B56DCeB3B97634D6f3F3B72bDf24E"
+LighthouseContractAddress = "0x843523a7810b6A1257dD0DdcCD5727F1B8242B0c"
 LighthouseChainId = 10101
 PrivateKey = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
 GasLimit = 3000000
