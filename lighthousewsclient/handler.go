@@ -86,7 +86,7 @@ func (l *LighthouseMessageHandler) handleBidSubmittedResponse(resp *responses.Bi
 }
 
 func (l *LighthouseMessageHandler) handleAuctionStartedEvent(event *events.AuctionStartedEvent) error {
-	logger.ColorPrintf(logger.BgGreen, "Auction started (auctionId=%s)", *event.AuctionId)
+	logger.ColorPrintf(logger.Cyan, "Auction started (auctionId=%s)", *event.AuctionId)
 
 	l.bidder.WaitMevCatching()
 
@@ -245,7 +245,7 @@ func ConvertToBytes32Array(hashes []common.Hash) [][32]byte {
 //}
 
 func (l *LighthouseMessageHandler) handleTobEvent(event *events.TobEvent) error {
-	logger.ColorPrintf(logger.BgGreen, "Received tob. rollupId '%s' auctionId '%s'", *event.RollupId, *event.AuctionId)
+	logger.ColorPrintf(logger.Green, "Received tob. rollupId '%s' auctionId '%s'", *event.RollupId, *event.AuctionId)
 	return nil
 }
 
